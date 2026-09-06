@@ -79,7 +79,7 @@ Expected successful model log markers include:
 
 ```text
 restored vanilla gFairySkel as the Fast64 import source
-[NAVI-TRUMP] Centered model on Navi pivot
+[NAVI-TRUMP] Centered refined model on Navi pivot and applied 0.52 scale
 [NAVI-TRUMP] Applied explicit colors to 13 Fast64 materials.
 [NAVI-TRUMP] Fast64 skeleton export completed.
 preserved gameplay_keep glow assets alongside the Trump Fairy export

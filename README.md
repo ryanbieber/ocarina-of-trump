@@ -92,6 +92,12 @@ patches all English Navi dialogue, installs the voice soundfonts, and builds the
 ROM. The result remains under `.work/oot/build/`. The command is safe to rerun;
 it reuses an existing extraction and generated checkout.
 
+The model defaults to `NAVI_TRUMP_MODEL_SCALE=0.52`, applied to both its body
+parts and their positions around Navi's centered pivot. To fine-tune its in-game
+size without editing the Blender script, set a different value on the one-shot
+command (for example `NAVI_TRUMP_MODEL_SCALE=0.46`). The exporter passes this
+setting into Windows Blender when the build runs through WSL.
+
 For an audio-and-dialogue test ROM that retains vanilla Navi's model:
 
 ```bash

@@ -1,7 +1,7 @@
-"""Navi -> stylized Trump fairy example for Blender + Fast64.
+"""Build and export the Trump fairy replacement for Blender + Fast64.
 
 What this script does:
-  * Builds a deliberately low-poly parody character with wings.
+  * Builds a compact, N64-budget parody likeness with wings.
   * Reuses an already-imported OoT/Fast64 armature when one exists.
   * Can import gFairySkel automatically when OOT_DECOMP_PATH is configured.
   * Converts the generated Principled materials to Fast64 F3D materials when
@@ -9,10 +9,9 @@ What this script does:
   * Saves a .blend file next to this script.
 
 Important:
-  * This is an example/template, not a finished ROM hack.
-  * The generated mesh is weighted to Navi's root bone so it follows her
-    movement. Assign the wing vertices to Navi's wing bones later if you want
-    animated wings.
+  * The generated mesh is rigidly bound to Navi's display limb. En_Elf uses a
+    rigid SkeletonHeader, so weighted/flex geometry will not render correctly.
+  * Wings are intentionally static because every vertex uses that one limb.
   * Do not add bones to the imported Navi skeleton until the basic replacement
     works. En_Elf expects the original fairy skeleton structure.
 
@@ -58,12 +57,12 @@ OUTPUT_BLEND = os.environ.get("NAVI_TRUMP_BLEND_OUTPUT", "navi_trump_fast64_exam
 # want to reduce these values again because the original N64 renderer has tight
 # memory and vertex limits.
 HIGH_POLY_PREVIEW = True
-# OoT's original actors are angular and rely on flat vertex normals. Keep the
-# extra geometry available for editing, but shade it like an N64 model.
+# Smooth normals and carefully limited UV spheres give the face a recognizable
+# silhouette without exceeding the actor's N64 vertex budget.
 OOT_STYLE = True
-SMOOTH_ROUND_PARTS = False
+SMOOTH_ROUND_PARTS = True
 ADD_OOT_GLOW = True
-MODEL_SCALE = 1.0
+MODEL_SCALE = float(os.environ.get("NAVI_TRUMP_MODEL_SCALE", "0.52"))
 
 # SkelAnime uses one-based draw limb indices. EnElf_OverrideLimbDraw applies
 # Navi's model scale at draw limb 8, which is Fast64's zero-based limb 7 bone.
@@ -590,18 +589,18 @@ def export_with_fast64(armature):
 
 
 def build_character():
-    # Match the reference's recognizable features while preserving an OoT
-    # low-poly treatment: swept blond hair, narrowed eyes, heavy brows, a
-    # long nose, pursed frown, navy suit, white shirt, and red tie.
+    # The likeness is carried by silhouette and proportions rather than dense
+    # geometry: broad forehead, tapered jaw, swept blond hair, narrowed eyes,
+    # pronounced brows, rounded nose, pursed mouth, navy suit, and red tie.
     if OOT_STYLE:
-        skin_color = (0.66, 0.29, 0.13)
-        hair_color = (0.92, 0.52, 0.10)
-        hair_highlight_color = (1.00, 0.75, 0.34)
-        hair_shadow_color = (0.48, 0.15, 0.015)
-        suit_color = (0.025, 0.035, 0.085)
-        shirt_color = (0.78, 0.78, 0.70)
-        tie_color = (0.55, 0.018, 0.025)
-        wing_color = (0.30, 0.68, 0.92)
+        skin_color = (0.82, 0.46, 0.27)
+        hair_color = (0.91, 0.68, 0.29)
+        hair_highlight_color = (1.00, 0.86, 0.52)
+        hair_shadow_color = (0.55, 0.34, 0.10)
+        suit_color = (0.025, 0.055, 0.14)
+        shirt_color = (0.92, 0.91, 0.84)
+        tie_color = (0.68, 0.025, 0.035)
+        wing_color = (0.48, 0.78, 1.00)
     else:
         skin_color = (0.86, 0.52, 0.34)
         hair_color = (0.95, 0.55, 0.08)
@@ -619,70 +618,75 @@ def build_character():
     suit = make_material("TrumpFairy_Suit", suit_color)
     shirt = make_material("TrumpFairy_Shirt", shirt_color)
     tie = make_material("TrumpFairy_Tie", tie_color)
-    eye_white = make_material("TrumpFairy_EyeWhite", (0.72, 0.70, 0.62))
+    eye_white = make_material("TrumpFairy_EyeWhite", (0.88, 0.86, 0.78))
     eye_dark = make_material("TrumpFairy_EyeDark", (0.025, 0.012, 0.01))
     mouth = make_material("TrumpFairy_Mouth", (0.17, 0.012, 0.012))
-    lip = make_material("TrumpFairy_Lip", (0.48, 0.055, 0.045))
+    lip = make_material("TrumpFairy_Lip", (0.58, 0.16, 0.13))
     shoe = make_material("TrumpFairy_Shoes", (0.02, 0.015, 0.012))
     wing = make_material("TrumpFairy_Wings", wing_color, alpha=0.62 if OOT_STYLE else 1.0)
 
-    round_subdivisions = 2 if OOT_STYLE else (3 if HIGH_POLY_PREVIEW else 2)
-    detail_subdivisions = 1 if OOT_STYLE else (2 if HIGH_POLY_PREVIEW else 1)
     parts = []
 
-    # Navy's body becomes a compact suit torso with the original fairy flight.
-    parts.append(add_ico("TrumpFairy_SuitBody", (0.0, 0.0, 1.42), (0.80, 0.50, 0.92), suit, round_subdivisions))
-    parts.append(add_ico("TrumpFairy_ShirtFront", (0.0, -0.47, 1.72), (0.25, 0.08, 0.50), shirt, detail_subdivisions))
+    # Compact formal silhouette. Separate shoulders keep the torso from reading
+    # as one large faceted ball while retaining the fairy's small proportions.
+    parts.append(add_uv_sphere("TrumpFairy_SuitBody", (0.0, 0.02, 1.38), (0.69, 0.43, 0.78), suit, 12, 7, True))
+    parts.append(add_uv_sphere("TrumpFairy_Shoulder_L", (-0.57, 0.01, 1.72), (0.28, 0.38, 0.30), suit, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Shoulder_R", (0.57, 0.01, 1.72), (0.28, 0.38, 0.30), suit, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_ShirtFront", (0.0, -0.42, 1.70), (0.22, 0.055, 0.43), shirt, 8, 5, True))
     parts.append(add_lapel("TrumpFairy_Lapel_L", -1, suit))
     parts.append(add_lapel("TrumpFairy_Lapel_R", 1, suit))
-    parts.append(add_cone("TrumpFairy_Tie", (0.0, -0.59, 1.57), 0.13, 0.035, 0.72, tie, (0.0, 0.0, 0.0)))
-    parts.append(add_ico("TrumpFairy_TieKnot", (0.0, -0.62, 1.98), (0.14, 0.065, 0.13), tie, detail_subdivisions))
-    parts.append(add_cylinder_between("TrumpFairy_Arm_L", (-0.58, 0.0, 1.86), (-0.96, -0.02, 1.18), 0.19, suit))
-    parts.append(add_cylinder_between("TrumpFairy_Arm_R", (0.58, 0.0, 1.86), (0.96, -0.02, 1.18), 0.19, suit))
-    parts.append(add_ico("TrumpFairy_Hand_L", (-0.96, -0.02, 1.08), (0.20, 0.18, 0.20), skin, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Hand_R", (0.96, -0.02, 1.08), (0.20, 0.18, 0.20), skin, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Shoe_L", (-0.36, -0.12, 0.38), (0.28, 0.38, 0.14), shoe, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Shoe_R", (0.36, -0.12, 0.38), (0.28, 0.38, 0.14), shoe, detail_subdivisions))
+    parts.append(add_cone("TrumpFairy_Tie", (0.0, -0.51, 1.48), 0.11, 0.035, 0.61, tie))
+    parts.append(add_uv_sphere("TrumpFairy_TieKnot", (0.0, -0.54, 1.85), (0.12, 0.055, 0.11), tie, 8, 5, True))
+    parts.append(add_cylinder_between("TrumpFairy_Arm_L", (-0.57, 0.0, 1.70), (-0.82, -0.01, 1.13), 0.15, suit))
+    parts.append(add_cylinder_between("TrumpFairy_Arm_R", (0.57, 0.0, 1.70), (0.82, -0.01, 1.13), 0.15, suit))
+    parts.append(add_uv_sphere("TrumpFairy_Hand_L", (-0.82, -0.03, 1.05), (0.16, 0.14, 0.17), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Hand_R", (0.82, -0.03, 1.05), (0.16, 0.14, 0.17), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Shoe_L", (-0.29, -0.13, 0.43), (0.23, 0.31, 0.12), shoe, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Shoe_R", (0.29, -0.13, 0.43), (0.23, 0.31, 0.12), shoe, 8, 5, True))
 
-    # Broad, low-poly head with a heavier jaw than the previous fairy face.
-    parts.append(add_ico("TrumpFairy_Head", (0.0, 0.0, 2.70), (0.76, 0.60, 0.73), skin, round_subdivisions))
-    parts.append(add_ico("TrumpFairy_Jaw", (0.0, -0.12, 2.43), (0.50, 0.38, 0.31), skin, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Ear_L", (-0.70, 0.0, 2.70), (0.15, 0.18, 0.20), skin, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Ear_R", (0.70, 0.0, 2.70), (0.15, 0.18, 0.20), skin, detail_subdivisions))
+    # A smooth oval cranium plus smaller overlapping cheek/jaw forms avoids the
+    # old block silhouette. Overlap is deliberate and survives rigid export.
+    parts.append(add_uv_sphere("TrumpFairy_Neck", (0.0, 0.0, 2.05), (0.27, 0.25, 0.31), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Head", (0.0, 0.0, 2.67), (0.67, 0.53, 0.72), skin, 16, 9, True))
+    parts.append(add_uv_sphere("TrumpFairy_Jaw", (0.0, -0.07, 2.39), (0.46, 0.38, 0.34), skin, 12, 7, True))
+    parts.append(add_uv_sphere("TrumpFairy_Cheek_L", (-0.31, -0.31, 2.55), (0.28, 0.23, 0.25), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Cheek_R", (0.31, -0.31, 2.55), (0.28, 0.23, 0.25), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Chin", (0.0, -0.30, 2.27), (0.25, 0.18, 0.17), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Ear_L", (-0.65, 0.0, 2.66), (0.11, 0.13, 0.18), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Ear_R", (0.65, 0.0, 2.66), (0.11, 0.13, 0.18), skin, 8, 5, True))
 
-    # High forehead, comb-over, and layered blond hair.
-    parts.append(add_ico("TrumpFairy_HairCap", (0.02, 0.05, 3.16), (0.80, 0.56, 0.30), hair, round_subdivisions))
-    parts.append(add_ico("TrumpFairy_HairSweep", (0.10, -0.16, 3.28), (0.68, 0.30, 0.19), hair_highlight, detail_subdivisions))
+    # The layered comb-over is asymmetric and projects forward over the brow.
+    # That silhouette remains readable when Navi is only a few pixels tall.
+    parts.append(add_uv_sphere("TrumpFairy_HairCap", (0.0, 0.06, 3.15), (0.69, 0.49, 0.28), hair, 14, 8, True))
     for index, location, scale, material_choice in [
-        (0, (-0.57, -0.04, 3.16), (0.34, 0.30, 0.16), hair_shadow),
-        (1, (-0.35, -0.25, 3.27), (0.36, 0.22, 0.15), hair),
-        (2, (-0.02, -0.35, 3.33), (0.38, 0.18, 0.13), hair_highlight),
-        (3, (0.32, -0.28, 3.31), (0.38, 0.20, 0.14), hair),
-        (4, (0.58, -0.08, 3.19), (0.32, 0.25, 0.16), hair_shadow),
+        (0, (-0.39, -0.18, 3.22), (0.36, 0.22, 0.15), hair_shadow),
+        (1, (-0.07, -0.29, 3.27), (0.42, 0.18, 0.14), hair),
+        (2, (0.31, -0.25, 3.24), (0.42, 0.19, 0.14), hair_highlight),
+        (3, (0.56, -0.08, 3.13), (0.24, 0.23, 0.16), hair),
     ]:
-        parts.append(add_ico("TrumpFairy_HairLock_{0}".format(index), location, scale, material_choice, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Sideburn_L", (-0.62, -0.18, 2.91), (0.12, 0.12, 0.24), hair_shadow, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Sideburn_R", (0.62, -0.18, 2.91), (0.12, 0.12, 0.24), hair_shadow, detail_subdivisions))
+        parts.append(add_uv_sphere("TrumpFairy_HairLock_{0}".format(index), location, scale, material_choice, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Sideburn_L", (-0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Sideburn_R", (0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 8, 5, True))
 
-    # Reference-like narrowed eyes, furrowed brows, strong nose, and frown.
-    parts.append(add_ico("TrumpFairy_Eye_L", (-0.26, -0.585, 2.79), (0.13, 0.045, 0.075), eye_white, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Eye_R", (0.26, -0.585, 2.79), (0.13, 0.045, 0.075), eye_white, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Pupil_L", (-0.25, -0.635, 2.79), (0.040, 0.020, 0.050), eye_dark, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Pupil_R", (0.25, -0.635, 2.79), (0.040, 0.020, 0.050), eye_dark, detail_subdivisions))
-    parts.append(add_cylinder_between("TrumpFairy_Brow_L", (-0.42, -0.61, 2.98), (-0.08, -0.65, 2.91), 0.055, hair_shadow))
-    parts.append(add_cylinder_between("TrumpFairy_Brow_R", (0.08, -0.65, 2.91), (0.42, -0.61, 2.98), 0.055, hair_shadow))
-    parts.append(add_ico("TrumpFairy_NoseBridge", (0.0, -0.49, 2.73), (0.15, 0.18, 0.24), skin, detail_subdivisions))
-    parts.append(add_cone("TrumpFairy_Nose", (0.0, -0.69, 2.60), 0.18, 0.03, 0.42, skin, (math.pi / 2.0, 0.0, 0.0)))
-    parts.append(add_cylinder_between("TrumpFairy_Frown_L", (-0.20, -0.63, 2.40), (0.0, -0.66, 2.35), 0.035, mouth))
-    parts.append(add_cylinder_between("TrumpFairy_Frown_R", (0.0, -0.66, 2.35), (0.20, -0.63, 2.40), 0.035, mouth))
-    parts.append(add_ico("TrumpFairy_LowerLip", (0.0, -0.65, 2.31), (0.16, 0.025, 0.045), lip, detail_subdivisions))
+    # Narrowed eyes and angled brows frame a rounded bridge/tip. The mouth is
+    # built from two shallow lip forms instead of a sharp V-shaped frown.
+    parts.append(add_uv_sphere("TrumpFairy_Eye_L", (-0.24, -0.515, 2.76), (0.13, 0.035, 0.060), eye_white, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Eye_R", (0.24, -0.515, 2.76), (0.13, 0.035, 0.060), eye_white, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Pupil_L", (-0.23, -0.552, 2.76), (0.035, 0.018, 0.042), eye_dark, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Pupil_R", (0.23, -0.552, 2.76), (0.035, 0.018, 0.042), eye_dark, 8, 5, True))
+    parts.append(add_cylinder_between("TrumpFairy_Brow_L", (-0.39, -0.54, 2.93), (-0.07, -0.58, 2.87), 0.042, hair_shadow))
+    parts.append(add_cylinder_between("TrumpFairy_Brow_R", (0.07, -0.58, 2.87), (0.39, -0.54, 2.93), 0.042, hair_shadow))
+    parts.append(add_uv_sphere("TrumpFairy_NoseBridge", (0.0, -0.48, 2.64), (0.115, 0.13, 0.25), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_NoseTip", (0.0, -0.61, 2.52), (0.17, 0.13, 0.13), skin, 8, 5, True))
+    parts.append(add_ico("TrumpFairy_Nostril_L", (-0.085, -0.715, 2.50), (0.027, 0.012, 0.018), mouth, 1, True))
+    parts.append(add_ico("TrumpFairy_Nostril_R", (0.085, -0.715, 2.50), (0.027, 0.012, 0.018), mouth, 1, True))
+    parts.append(add_uv_sphere("TrumpFairy_UpperLip", (0.0, -0.625, 2.34), (0.17, 0.035, 0.045), lip, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_LowerLip", (0.0, -0.620, 2.285), (0.15, 0.030, 0.040), lip, 8, 5, True))
+    parts.append(add_cylinder_between("TrumpFairy_MouthLine", (-0.16, -0.661, 2.325), (0.16, -0.661, 2.325), 0.018, mouth))
 
     # Navi wings stay behind the suit; this is still a fairy replacement.
     parts.append(add_wing("TrumpFairy_Wing_L", -1, wing))
     parts.append(add_wing("TrumpFairy_Wing_R", 1, wing))
-
-    for obj in parts:
-        obj.scale = obj.scale * MODEL_SCALE
 
     # Navi's display limb is centered on the fairy, while these modeling
     # primitives were authored upward from the shoes. Center their real
@@ -697,7 +701,15 @@ def build_character():
     vertical_center = (min(vertical_bounds) + max(vertical_bounds)) * 0.5
     for obj in parts:
         obj.location.z -= vertical_center
-    log("Centered model on Navi pivot (vertical offset {0:.3f}).".format(vertical_center))
+        # Scale both the primitive and its layout position. Scaling only
+        # obj.scale made the old body smaller while leaving its parts spread
+        # over the original oversized height.
+        obj.location *= MODEL_SCALE
+        obj.scale *= MODEL_SCALE
+    log(
+        "Centered refined model on Navi pivot and applied {0:.2f} scale "
+        "(vertical offset {1:.3f}).".format(MODEL_SCALE, vertical_center)
+    )
 
     return parts
 
@@ -710,8 +722,8 @@ def add_oot_glow(armature):
     glow_material = make_material("TrumpFairy_OoTGlow", (0.55, 0.82, 1.0), alpha=0.20)
     glow = add_ico(
         "TrumpFairy_OoTGlow_PREVIEW_ONLY",
-        (0.0, 0.30, 1.75),
-        (1.35, 0.08, 1.35),
+        (0.0, 0.18, 0.0),
+        (0.98, 0.05, 0.98),
         glow_material,
         subdivisions=2,
         smooth=False,
@@ -785,10 +797,10 @@ def look_at(obj, target):
 
 
 def add_preview_camera_and_light():
-    bpy.ops.object.camera_add(location=(4.0, -6.4, 3.6))
+    bpy.ops.object.camera_add(location=(2.2, -3.6, 1.6))
     camera = bpy.context.object
     camera.name = "PreviewCamera"
-    look_at(camera, (0.0, 0.0, 1.7))
+    look_at(camera, (0.0, 0.0, 0.0))
     bpy.context.scene.camera = camera
 
     bpy.ops.object.light_add(type="AREA", location=(3.5, -4.0, 6.0))
@@ -797,14 +809,14 @@ def add_preview_camera_and_light():
     key.data.energy = 700.0
     key.data.shape = "DISK"
     key.data.size = 5.0
-    look_at(key, (0.0, 0.0, 1.6))
+    look_at(key, (0.0, 0.0, 0.0))
 
     bpy.ops.object.light_add(type="AREA", location=(-4.0, 1.0, 3.0))
     fill = bpy.context.object
     fill.name = "PreviewFill"
     fill.data.energy = 300.0
     fill.data.size = 4.0
-    look_at(fill, (0.0, 0.0, 1.5))
+    look_at(fill, (0.0, 0.0, 0.0))
 
 
 def set_preview_settings():

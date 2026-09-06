@@ -320,6 +320,10 @@ def export_navi_model(repo: Path, blender: str | None = None) -> None:
         "NAVI_TRUMP_BLEND_OUTPUT": path_for_blender(
             ROOT / ".work" / "navi_trump_export.blend", blender
         ),
+        # Explicit injection also makes this knob work when a Windows Blender
+        # process is launched from WSL, where Linux environment inheritance is
+        # otherwise inconsistent.
+        "NAVI_TRUMP_MODEL_SCALE": os.environ.get("NAVI_TRUMP_MODEL_SCALE", "0.52"),
     }
     script = path_for_blender(ROOT / "navi_trump_fast64_example.py", blender)
     # Linux environment variables are not automatically inherited by a Win32
