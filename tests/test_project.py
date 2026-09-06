@@ -6,10 +6,34 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 
-from oot_trump.project import ProjectConfig, ProjectError, stage_baserom
+from oot_trump.project import (
+    ProjectConfig,
+    ProjectError,
+    patch_armips_pthread,
+    stage_baserom,
+)
 
 
 class ProjectTests(unittest.TestCase):
+    def test_armips_pthread_patch_is_idempotent(self) -> None:
+        rule = (
+            "armips: armips.cpp\n"
+            "\t$(CXX) $(WARNFLAGS) -std=c++17 $(OPTFLAGS) -s -fno-rtti -pipe "
+            "-Wno-unused-parameter -Wno-sign-compare $< -o $@\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            makefile = root / "tools" / "Makefile"
+            makefile.parent.mkdir()
+            makefile.write_text(rule, encoding="utf-8")
+
+            patch_armips_pthread(root)
+            first = makefile.read_text(encoding="utf-8")
+            patch_armips_pthread(root)
+
+            self.assertIn("-Wno-sign-compare -pthread $< -o $@", first)
+            self.assertEqual(makefile.read_text(encoding="utf-8"), first)
+
     def test_stage_baserom_validates_and_copies_to_expected_location(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

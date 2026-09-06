@@ -18,6 +18,7 @@ from .project import (
     assert_oot_checkout,
     find_baserom,
     md5,
+    patch_armips_pthread,
     run,
     stage_baserom,
 )
@@ -33,6 +34,7 @@ def bootstrap(repo: Path, config: ProjectConfig, setup: bool) -> None:
         run(["git", "clone", config.oot_repository, str(repo)])
     run(["git", "fetch", "origin", config.oot_revision], cwd=repo)
     run(["git", "checkout", "--detach", config.oot_revision], cwd=repo)
+    patch_armips_pthread(repo)
     if setup:
         find_baserom(repo, config)
         run(["make", "setup", f"VERSION={config.version}"], cwd=repo)

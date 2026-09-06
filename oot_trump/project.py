@@ -50,6 +50,26 @@ def run(command: list[str], cwd: Path | None = None) -> None:
     subprocess.run(command, cwd=cwd, check=True)
 
 
+def patch_armips_pthread(repo: Path) -> None:
+    """Make the pinned armips build link correctly on modern Linux hosts."""
+    makefile = repo / "tools" / "Makefile"
+    try:
+        source = makefile.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ProjectError(f"Missing ZeldaRET tool Makefile: {makefile}") from exc
+    armips_rule = (
+        "\t$(CXX) $(WARNFLAGS) -std=c++17 $(OPTFLAGS) -s -fno-rtti -pipe "
+        "-Wno-unused-parameter -Wno-sign-compare $< -o $@"
+    )
+    patched_rule = armips_rule.replace(" $< -o $@", " -pthread $< -o $@")
+    if patched_rule in source:
+        return
+    if armips_rule not in source:
+        raise ProjectError("Pinned ZeldaRET armips build rule was not found")
+    makefile.write_text(source.replace(armips_rule, patched_rule, 1), encoding="utf-8")
+    print("patched ZeldaRET armips linker flags (-pthread)")
+
+
 def git_revision(repo: Path) -> str:
     result = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=repo, check=True, text=True, capture_output=True
