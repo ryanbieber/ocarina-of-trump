@@ -84,7 +84,11 @@ def build(repo: Path) -> None:
     apply(repo, check=False)
     count = install_audio_backend(repo, load_manifest(), config, require_all=True)
     print(f"installed {count} voice clips into ZeldaRET")
-    run(["make", f"VERSION={config.version}"], cwd=repo, clean_toolchain=True)
+    run(
+        ["make", f"VERSION={config.version}", "COMPARE=0"],
+        cwd=repo,
+        clean_toolchain=True,
+    )
 
 
 def export_navi_model(repo: Path) -> None:
