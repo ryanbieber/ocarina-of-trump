@@ -567,7 +567,39 @@ def configure_cutout_conversion_presets(meshes):
     for module_name in fast64_converter_module_names():
         try:
             converter = importlib.import_module(module_name)
-            preset = converter.getDefaultMaterialPreset("Shaded Texture Cutout")
+            preset_keys = [entry[0] for entry in converter.enumMaterialPresets]
+            candidates = []
+            try:
+                # Fast64's helper only maps its small set of default material
+                # families. Derive the neighboring cutout key from the shaded
+                # texture key when the cutout display name is not mapped.
+                base_preset = converter.getDefaultMaterialPreset("Shaded Texture")
+                candidates.append(base_preset + "_cutout")
+            except Exception:
+                pass
+            candidates.extend(
+                [
+                    "oot_shaded_texture_cutout",
+                    "shaded_texture_cutout",
+                    "sm64_shaded_texture_cutout",
+                    "Shaded Texture Cutout",
+                ]
+            )
+            preset = next((key for key in candidates if key in preset_keys), None)
+            if preset is None:
+                preset = next(
+                    (
+                        key
+                        for key in preset_keys
+                        if key.lower().replace(" ", "_").endswith("shaded_texture_cutout")
+                    ),
+                    None,
+                )
+            if preset is None:
+                raise KeyError(
+                    "no shaded texture cutout key in "
+                    + ", ".join(key for key in preset_keys if "texture" in key.lower())
+                )
             for material in materials:
                 material["convert_preset"] = preset
             log("Configured Fast64 face cutout preset: " + preset)
