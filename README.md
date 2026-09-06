@@ -194,8 +194,9 @@ ZeldaRET. It stops before compilation if any production WAV is missing.
 
 ## Fast64 model workflow
 
-The model script now reads configuration from the environment and binds its
-four wing regions to the real animated fairy wing limbs instead of the root:
+The model script reads configuration from the environment and binds the rigid
+replacement to Navi's central scaled display limb. The current generated wings
+are static; this keeps the `SkeletonHeader` draw path required by `En_Elf`:
 
 ```bash
 OOT_DECOMP_PATH="$PWD/.work/oot" \
