@@ -6,6 +6,3 @@ __pycache__/
 .work/
 dist/
 build/
-content/voice/*.wav
-!content/voice/.gitkeep
-!content/voice/trump_00e0_00.wav

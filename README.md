@@ -22,9 +22,9 @@ legally obtained NTSC 1.0 baserom.
   `message_data.h`, preserving Japanese and other language slots.
 - A pinned ZeldaRET checkout/build CLI for NTSC 1.0.
 
-The rights-cleared production voice WAVs, Fast64-exported in-game model, and
-final ROM are generated inputs/outputs and are not checked in. One neutral,
-non-imitative robot-tone WAV is checked in as an end-to-end fixture.
+The generated production voice WAVs are checked in so a clone contains the
+complete voice catalog. The Fast64-exported in-game model and final ROM remain
+generated outputs and are not checked in.
 
 ## Requirements
 
@@ -41,8 +41,8 @@ MD5 hashes are recorded in `config/project.json`.
 
 ## One-shot build
 
-After installing the requirements and adding all 176 production WAVs, build
-from a legally obtained NTSC 1.0 baserom with one command:
+After installing the requirements, build from a legally obtained NTSC 1.0
+baserom with one command:
 
 ```bash
 ./scripts/build-rom.sh /absolute/path/to/baserom.z64

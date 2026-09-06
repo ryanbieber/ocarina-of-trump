@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from oot_trump.cli import build
 from oot_trump.project import ProjectError
@@ -9,8 +10,10 @@ from oot_trump.project import ProjectError
 
 class CliTests(unittest.TestCase):
     def test_full_build_requires_complete_voice_inputs(self) -> None:
-        with self.assertRaisesRegex(ProjectError, "missing 175 voice WAVs"):
-            build(Path("/unused"))
+        missing = "missing 175 voice WAVs in /unused/content/voice"
+        with patch("oot_trump.cli.validate", return_value=[missing]):
+            with self.assertRaisesRegex(ProjectError, "missing 175 voice WAVs"):
+                build(Path("/unused"))
 
 
 if __name__ == "__main__":
