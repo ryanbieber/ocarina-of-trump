@@ -34,6 +34,16 @@ class CliTests(unittest.TestCase):
         self.assertIn("FAIRY_MODEL_BONE = 7", script)
         self.assertNotIn("upper.add(", script)
 
+    def test_trump_fairy_centers_geometry_and_exports_material_colors(self) -> None:
+        script = (Path(__file__).parent.parent / "navi_trump_fast64_example.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("vertical_center = (min(vertical_bounds) + max(vertical_bounds)) * 0.5", script)
+        self.assertIn("obj.location.z -= vertical_center", script)
+        self.assertIn("f3d_mat.default_light_color = color", script)
+        self.assertIn("f3d_mat.set_lights = True", script)
+        self.assertIn('f3d_mat.combiner1.D_alpha = "PRIMITIVE"', script)
+
     def test_model_export_injects_settings_into_blender_python(self) -> None:
         with (
             patch(

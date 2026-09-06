@@ -70,6 +70,7 @@ MODEL_SCALE = 1.0
 FAIRY_MODEL_BONE = 7
 MAX_EXPORT_VERTICES = 1800
 MAX_EXPORT_MATERIALS = 16
+TRUMP_MATERIAL_COLORS = {}
 
 
 # -----------------------------------------------------------------------------
@@ -156,6 +157,7 @@ def make_material(name, color, alpha=1.0):
 
     material.diffuse_color = (color[0], color[1], color[2], alpha)
     material["Fast64_example_material"] = True
+    TRUMP_MATERIAL_COLORS[name] = (color[0], color[1], color[2], alpha)
 
     # Blender 3.x uses blend_method; newer Blender versions use
     # surface_render_method. The try blocks keep this script portable.
@@ -514,6 +516,41 @@ def convert_materials_to_f3d():
     return False
 
 
+def apply_trump_colors_to_f3d(meshes):
+    """Make Fast64 emit the generated colors instead of inheriting white actor lights."""
+    updated = set()
+    for obj in meshes:
+        for slot in obj.material_slots:
+            material = slot.material
+            if material is None or material in updated or not getattr(material, "is_f3d", False):
+                continue
+            base_name = material.name.removesuffix("_f3d")
+            color = TRUMP_MATERIAL_COLORS.get(base_name)
+            if color is None:
+                continue
+            updated.add(material)
+            with bpy.context.temp_override(material=material):
+                f3d_mat = material.f3d_mat
+                # Fast64's BSDF converter copies the color to this field but
+                # its Shaded Solid preset leaves set_lights off. Enable the
+                # generated light so each material exports its own hue.
+                f3d_mat.use_default_lighting = True
+                f3d_mat.set_ambient_from_light = True
+                f3d_mat.default_light_color = color
+                f3d_mat.set_lights = True
+                # Preserve translucent wing alpha in the otherwise shaded
+                # solid combiner.
+                f3d_mat.prim_color = (1.0, 1.0, 1.0, color[3])
+                f3d_mat.combiner1.D_alpha = "PRIMITIVE"
+    if len(updated) != len(TRUMP_MATERIAL_COLORS):
+        raise RuntimeError(
+            "Applied explicit F3D colors to {0} of {1} Trump materials.".format(
+                len(updated), len(TRUMP_MATERIAL_COLORS)
+            )
+        )
+    log("Applied explicit colors to {0} Fast64 materials.".format(len(updated)))
+
+
 def export_with_fast64(armature):
     if not EXPORT_WITH_FAST64:
         return False
@@ -646,6 +683,21 @@ def build_character():
 
     for obj in parts:
         obj.scale = obj.scale * MODEL_SCALE
+
+    # Navi's display limb is centered on the fairy, while these modeling
+    # primitives were authored upward from the shoes. Center their real
+    # world-space vertical bounds on the limb so neither head nor feet are
+    # pushed off screen as the fairy flies near the camera.
+    bpy.context.view_layer.update()
+    vertical_bounds = [
+        (obj.matrix_world @ Vector(corner)).z
+        for obj in parts
+        for corner in obj.bound_box
+    ]
+    vertical_center = (min(vertical_bounds) + max(vertical_bounds)) * 0.5
+    for obj in parts:
+        obj.location.z -= vertical_center
+    log("Centered model on Navi pivot (vertical offset {0:.3f}).".format(vertical_center))
 
     return parts
 
@@ -811,6 +863,8 @@ def main():
     # Fast64 converts all visible mesh materials at once when this operator is
     # available. If Fast64 is absent, the blend still opens normally.
     materials_converted = convert_materials_to_f3d()
+    if materials_converted:
+        apply_trump_colors_to_f3d([mesh_obj])
 
     if EXPORT_WITH_FAST64:
         if imported_armature is None:
