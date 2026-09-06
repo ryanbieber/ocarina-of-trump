@@ -182,6 +182,92 @@ def validate_exported_navi_model(repo: Path) -> None:
     print("validated Fast64 Trump Navi source replacement")
 
 
+def _between(data: str, start: str, end: str, label: str) -> str:
+    start_index = data.find(start)
+    end_index = data.find(end, start_index + len(start))
+    if start_index < 0 or end_index < 0:
+        raise ProjectError(f"Could not preserve vanilla {label} around the Fast64 export")
+    return data[start_index:end_index].rstrip() + "\n"
+
+
+def merge_fairy_shared_assets(
+    generated_header: str,
+    generated_source: str,
+    vanilla_header: str,
+    vanilla_source: str,
+) -> tuple[str, str]:
+    """Put gameplay_keep's non-fairy glow assets back after Fast64 overwrites the file."""
+    header_assets = _between(
+        vanilla_header,
+        "extern Vtx gGlowCircleVtx[];",
+        "extern StandardLimb gFairySkelLimb_0;",
+        "fairy glow declarations",
+    )
+    source_assets = _between(
+        vanilla_source,
+        "Vtx gGlowCircleVtx[] = {",
+        "StandardLimb gFairySkelLimb_0 = {",
+        "fairy glow definitions",
+    )
+    if "gGlowCircleTextureLoadDL" not in generated_header:
+        closing_guard = generated_header.rfind("#endif")
+        if closing_guard < 0:
+            raise ProjectError("Fast64 fairy_skel.h has no closing include guard")
+        generated_header = (
+            generated_header[:closing_guard].rstrip()
+            + "\n\n"
+            + header_assets
+            + "\n"
+            + generated_header[closing_guard:]
+        )
+    if "gGlowCircleTextureLoadDL" not in generated_source:
+        circle_include = '#include "circle_glow_textures.h"\n'
+        if circle_include not in generated_source:
+            first_line_end = generated_source.find("\n") + 1
+            generated_source = (
+                generated_source[:first_line_end]
+                + circle_include
+                + generated_source[first_line_end:]
+            )
+        generated_source = generated_source.rstrip() + "\n\n" + source_assets
+    return generated_header, generated_source
+
+
+def preserve_fairy_shared_assets(repo: Path) -> None:
+    """Recover assets colocated with gFairySkel that Fast64 does not know about."""
+    relative_base = Path("assets/objects/gameplay_keep/fairy_skel")
+    header_path = repo / relative_base.with_suffix(".h")
+    source_path = repo / relative_base.with_suffix(".c")
+    try:
+        vanilla_header = subprocess.run(
+            ["git", "show", f"HEAD:{relative_base.with_suffix('.h').as_posix()}"],
+            cwd=repo,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        ).stdout
+        vanilla_source = subprocess.run(
+            ["git", "show", f"HEAD:{relative_base.with_suffix('.c').as_posix()}"],
+            cwd=repo,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        ).stdout
+        generated_header = header_path.read_text(encoding="utf-8")
+        generated_source = source_path.read_text(encoding="utf-8")
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ProjectError("Could not load fairy_skel assets for the Fast64 compatibility merge") from exc
+
+    merged_header, merged_source = merge_fairy_shared_assets(
+        generated_header, generated_source, vanilla_header, vanilla_source
+    )
+    header_path.write_text(merged_header, encoding="utf-8")
+    source_path.write_text(merged_source, encoding="utf-8")
+    print("preserved gameplay_keep glow assets alongside the Trump Fairy export")
+
+
 def export_navi_model(repo: Path, blender: str | None = None) -> None:
     if blender is None:
         blender = validate_model_tools()
@@ -206,6 +292,7 @@ def export_navi_model(repo: Path, blender: str | None = None) -> None:
         cwd=ROOT,
         check=True,
     )
+    preserve_fairy_shared_assets(repo)
     validate_exported_navi_model(repo)
 
 

@@ -10,6 +10,7 @@ from oot_trump.cli import (
     build,
     export_navi_model,
     find_blender,
+    merge_fairy_shared_assets,
     path_for_blender,
     validate_exported_navi_model,
     validate_model_tools,
@@ -25,6 +26,7 @@ class CliTests(unittest.TestCase):
                 side_effect=lambda path, _blender: "converted:" + Path(path).name,
             ),
             patch("oot_trump.cli.subprocess.run") as run,
+            patch("oot_trump.cli.preserve_fairy_shared_assets") as preserve_assets,
             patch("oot_trump.cli.validate_exported_navi_model") as validate_export,
         ):
             export_navi_model(Path("/oot"), "/mnt/c/Blender/blender.exe")
@@ -35,7 +37,34 @@ class CliTests(unittest.TestCase):
         self.assertIn("converted:oot", command[-1])
         self.assertIn("NAVI_TRUMP_EXPORT", command[-1])
         self.assertIn("runpy.run_path", command[-1])
+        preserve_assets.assert_called_once_with(Path("/oot"))
         validate_export.assert_called_once_with(Path("/oot"))
+
+    def test_fast64_export_retains_colocated_glow_assets(self) -> None:
+        generated_header = "#ifndef FAIRY_SKEL_H\n#define FAIRY_SKEL_H\nextern SkeletonHeader gFairySkel;\n#endif\n"
+        generated_source = '#include "fairy_skel.h"\nGfx TrumpFairy_Skin[] = {};\n'
+        vanilla_header = (
+            "extern Vtx gGlowCircleVtx[];\n"
+            "extern Gfx gGlowCircleTextureLoadDL[8];\n"
+            "extern Gfx gGlowCircleDL[4];\n"
+            "extern StandardLimb gFairySkelLimb_0;\n"
+        )
+        vanilla_source = (
+            "Vtx gGlowCircleVtx[] = { 0 };\n"
+            "Gfx gGlowCircleTextureLoadDL[8] = { 0 };\n"
+            "Gfx gGlowCircleDL[4] = { 0 };\n"
+            "StandardLimb gFairySkelLimb_0 = { 0 };\n"
+        )
+
+        header, source = merge_fairy_shared_assets(
+            generated_header, generated_source, vanilla_header, vanilla_source
+        )
+
+        self.assertIn("extern Gfx gGlowCircleTextureLoadDL[8];", header)
+        self.assertLess(header.index("gGlowCircleTextureLoadDL"), header.index("#endif"))
+        self.assertIn('#include "circle_glow_textures.h"', source)
+        self.assertIn("Gfx gGlowCircleDL[4]", source)
+        self.assertIn("TrumpFairy_Skin", source)
 
     def test_exported_model_must_replace_gfairyskel_with_trump_geometry(self) -> None:
         with TemporaryDirectory() as directory:
