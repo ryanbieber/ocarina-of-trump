@@ -37,7 +37,11 @@ def bootstrap(repo: Path, config: ProjectConfig, setup: bool) -> None:
     patch_armips_pthread(repo)
     if setup:
         find_baserom(repo, config)
-        run(["make", "setup", f"VERSION={config.version}"], cwd=repo)
+        run(
+            ["make", "setup", f"VERSION={config.version}"],
+            cwd=repo,
+            clean_toolchain=True,
+        )
 
 
 def validate(allow_missing_audio: bool) -> list[str]:
@@ -80,7 +84,7 @@ def build(repo: Path) -> None:
     apply(repo, check=False)
     count = install_audio_backend(repo, load_manifest(), config, require_all=True)
     print(f"installed {count} voice clips into ZeldaRET")
-    run(["make", f"VERSION={config.version}"], cwd=repo)
+    run(["make", f"VERSION={config.version}"], cwd=repo, clean_toolchain=True)
 
 
 def export_navi_model(repo: Path) -> None:
@@ -133,7 +137,11 @@ def build_rom(repo: Path, baserom: Path | None, skip_model: bool) -> None:
         find_baserom(repo, config)
 
     if not (repo / config.message_data).is_file():
-        run(["make", "setup", f"VERSION={config.version}"], cwd=repo)
+        run(
+            ["make", "setup", f"VERSION={config.version}"],
+            cwd=repo,
+            clean_toolchain=True,
+        )
     else:
         print("ZeldaRET extraction already exists; skipping make setup")
 

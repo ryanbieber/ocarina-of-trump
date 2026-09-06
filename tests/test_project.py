@@ -1,20 +1,36 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import tempfile
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 
 from oot_trump.project import (
     ProjectConfig,
     ProjectError,
+    clean_toolchain_environment,
     patch_armips_pthread,
     stage_baserom,
 )
 
 
 class ProjectTests(unittest.TestCase):
+    def test_clean_toolchain_environment_removes_conda_compiler_flags(self) -> None:
+        variables = {
+            "CFLAGS": "-march=nocona",
+            "CPPFLAGS": "-isystem /tmp/conda/include",
+            "LDFLAGS": "-L/tmp/conda/lib",
+        }
+        with patch.dict(os.environ, variables):
+            environment = clean_toolchain_environment()
+
+        for name in variables:
+            self.assertNotIn(name, environment)
+        self.assertEqual(environment.get("PATH"), os.environ.get("PATH"))
+
     def test_armips_pthread_patch_is_idempotent(self) -> None:
         rule = (
             "armips: armips.cpp\n"

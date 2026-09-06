@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -46,8 +47,38 @@ class ProjectConfig:
         )
 
 
-def run(command: list[str], cwd: Path | None = None) -> None:
-    subprocess.run(command, cwd=cwd, check=True)
+HOST_TOOLCHAIN_VARIABLES = (
+    "AR",
+    "AS",
+    "CC",
+    "CFLAGS",
+    "CPATH",
+    "CPPFLAGS",
+    "CPLUS_INCLUDE_PATH",
+    "CXX",
+    "CXXFLAGS",
+    "LD",
+    "LDFLAGS",
+    "LIBRARY_PATH",
+)
+
+
+def clean_toolchain_environment() -> dict[str, str]:
+    """Return an environment without host flags that break the N64 IDO compiler."""
+    environment = os.environ.copy()
+    for name in HOST_TOOLCHAIN_VARIABLES:
+        environment.pop(name, None)
+    return environment
+
+
+def run(
+    command: list[str],
+    cwd: Path | None = None,
+    *,
+    clean_toolchain: bool = False,
+) -> None:
+    environment = clean_toolchain_environment() if clean_toolchain else None
+    subprocess.run(command, cwd=cwd, env=environment, check=True)
 
 
 def patch_armips_pthread(repo: Path) -> None:
