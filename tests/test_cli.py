@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 from tempfile import TemporaryDirectory
 from pathlib import Path
+import struct
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -10,6 +11,7 @@ from oot_trump.cli import (
     build,
     export_navi_model,
     find_blender,
+    install_navi_face_animation,
     merge_fairy_shared_assets,
     path_for_blender,
     validate_exported_navi_model,
@@ -45,9 +47,24 @@ class CliTests(unittest.TestCase):
         self.assertIn("obj.scale *= MODEL_SCALE", script)
         self.assertIn('add_uv_sphere("TrumpFairy_Head"', script)
         self.assertIn("SMOOTH_ROUND_PARTS = True", script)
+        self.assertIn('"trump_face_smug_n64.png"', script)
+        self.assertIn('"trump_face_smug_talking_n64.png"', script)
+        self.assertIn('getDefaultMaterialPreset("Shaded Texture Cutout")', script)
+        self.assertIn('material["convert_preset"] = preset', script)
+        self.assertIn('add_face_plate("TrumpFairy_FacePlate", face)', script)
+        self.assertIn("add_hidden_texture_carrier", script)
         self.assertIn("f3d_mat.default_light_color = color", script)
         self.assertIn("f3d_mat.set_lights = True", script)
         self.assertIn('f3d_mat.combiner1.D_alpha = "PRIMITIVE"', script)
+
+    def test_trump_face_runtime_texture_is_n64_sized_rgba(self) -> None:
+        root = Path(__file__).parent.parent / "trump_face"
+        for filename in ("trump_face_smug_n64.png", "trump_face_smug_talking_n64.png"):
+            data = (root / filename).read_bytes()
+            self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
+            self.assertEqual(struct.unpack(">II", data[16:24]), (64, 64))
+            self.assertEqual(data[24], 8)
+            self.assertEqual(data[25], 6)
 
     def test_model_export_injects_settings_into_blender_python(self) -> None:
         with (
@@ -58,6 +75,7 @@ class CliTests(unittest.TestCase):
             patch("oot_trump.cli.subprocess.run") as run,
             patch("oot_trump.cli.restore_vanilla_fairy_skeleton") as restore_skeleton,
             patch("oot_trump.cli.preserve_fairy_shared_assets") as preserve_assets,
+            patch("oot_trump.cli.install_navi_face_animation") as install_face_animation,
             patch("oot_trump.cli.validate_exported_navi_model") as validate_export,
         ):
             export_navi_model(Path("/oot"), "/mnt/c/Blender/blender.exe")
@@ -80,7 +98,47 @@ class CliTests(unittest.TestCase):
         self.assertIn("runpy.run_path", command[-1])
         restore_skeleton.assert_called_once_with(Path("/oot"))
         preserve_assets.assert_called_once_with(Path("/oot"))
+        install_face_animation.assert_called_once_with(Path("/oot"))
         validate_export.assert_called_once_with(Path("/oot"))
+
+    def test_navi_face_animation_routes_idle_texture_through_segment_nine(self) -> None:
+        with TemporaryDirectory() as directory:
+            repo = Path(directory)
+            object_dir = repo / "assets/objects/gameplay_keep"
+            actor_dir = repo / "src/overlays/actors/ovl_En_Elf"
+            object_dir.mkdir(parents=True)
+            actor_dir.mkdir(parents=True)
+            source = object_dir / "fairy_skel.c"
+            header = object_dir / "fairy_skel.h"
+            actor = actor_dir / "z_en_elf.c"
+            source.write_text(
+                "u64 TrumpFairyFaceTexture[] = { 0 };\n"
+                "u64 TrumpFairyFaceTalkingTexture[] = { 0 };\n"
+                "Gfx TrumpFairyFaceMaterial[] = {\n"
+                "    gsDPSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, TrumpFairyFaceTexture),\n"
+                "};\n"
+                "Gfx TrumpFairyFaceTalkingMaterial[] = {\n"
+                "    gsDPSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, TrumpFairyFaceTalkingTexture),\n"
+                "};\n",
+                encoding="utf-8",
+            )
+            header.write_text("#ifndef FAIRY_SKEL_H\n#define FAIRY_SKEL_H\n#endif\n", encoding="utf-8")
+            actor.write_text(
+                '#include "assets/objects/gameplay_keep/fairy_anim.h"\n'
+                "void EnElf_Draw(void) {\n"
+                "            POLY_XLU_DISP = SkelAnime_Draw(\n"
+                "}\n",
+                encoding="utf-8",
+            )
+
+            install_navi_face_animation(repo)
+
+            self.assertIn("0x09000000", source.read_text())
+            self.assertIn("TrumpFairyFaceTalkingTexture", source.read_text())
+            self.assertIn("extern u64 TrumpFairyFaceTexture[];", header.read_text())
+            self.assertIn("OOT_TRUMP_FACE_SEGMENT_START", actor.read_text())
+            self.assertIn("OotTrump_IsVoicePlaying()", actor.read_text())
+            self.assertIn("(this->timer >> 2) & 1", actor.read_text())
 
     def test_fast64_export_retains_colocated_glow_assets(self) -> None:
         generated_header = "#ifndef FAIRY_SKEL_H\n#define FAIRY_SKEL_H\nextern SkeletonHeader gFairySkel;\n#endif\n"

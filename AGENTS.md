@@ -66,6 +66,12 @@ after a Python exception while returning success.
 - Center the measured vertical model bounds on the fairy pivot before export.
 - Fast64's Blender 5.2 BSDF fallback does not enable exported colored lights
   by default. Preserve the explicit per-material F3D color transfer and alpha.
+- Keep `trump_face/trump_face_smug_n64.png` at 64x64 RGBA and connected through
+  the `Shaded Texture Cutout` conversion preset. Its runtime cost is 8 KiB as
+  RGBA16; do not point the exporter at the full-resolution source image.
+- Keep the matching talking frame at 64x64 RGBA. Fast64 exports both textures;
+  the post-export patch routes the visible face through segment 9 and En_Elf
+  alternates frames every four game frames only while a Trump voice is active.
 - Keep export limits at or below 1,800 vertices and 16 materials unless the N64
   runtime budget is measured again.
 - Fast64 overwrites `fairy_skel.c/.h`, which also house shared glow assets.
@@ -80,9 +86,10 @@ Expected successful model log markers include:
 ```text
 restored vanilla gFairySkel as the Fast64 import source
 [NAVI-TRUMP] Centered refined model on Navi pivot and applied 0.52 scale
-[NAVI-TRUMP] Applied explicit colors to 13 Fast64 materials.
+[NAVI-TRUMP] Applied explicit colors to 11 Fast64 materials.
 [NAVI-TRUMP] Fast64 skeleton export completed.
 preserved gameplay_keep glow assets alongside the Trump Fairy export
+installed voice-synchronized Trump Navi mouth animation
 validated Fast64 Trump Navi source replacement
 ```
 

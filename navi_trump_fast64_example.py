@@ -52,6 +52,16 @@ EXPORT_WITH_FAST64 = os.environ.get("NAVI_TRUMP_EXPORT", "0") == "1"
 
 # A relative path is resolved next to this script when run with --python.
 OUTPUT_BLEND = os.environ.get("NAVI_TRUMP_BLEND_OUTPUT", "navi_trump_fast64_example.blend")
+FACE_TEXTURE_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "trump_face",
+    "trump_face_smug_n64.png",
+)
+FACE_TALKING_TEXTURE_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "trump_face",
+    "trump_face_smug_talking_n64.png",
+)
 
 # Higher detail is useful while modeling. Before a final ROM export, you may
 # want to reduce these values again because the original N64 renderer has tight
@@ -170,6 +180,30 @@ def make_material(name, color, alpha=1.0):
         except Exception:
             pass
 
+    return material
+
+
+def make_texture_material(name, image_path, image_name):
+    """Create a Principled material Fast64 can convert to a cutout texture."""
+    if not os.path.isfile(image_path):
+        raise RuntimeError("Required Trump face texture is missing: " + image_path)
+
+    material = make_material(name, (1.0, 1.0, 1.0))
+    nodes = material.node_tree.nodes
+    bsdf = nodes.get("Principled BSDF")
+    image = bpy.data.images.load(image_path, check_existing=True)
+    image.name = image_name
+    image.colorspace_settings.name = "sRGB"
+    texture = nodes.new("ShaderNodeTexImage")
+    texture.name = "TrumpFairyFaceImage"
+    texture.image = image
+    material.node_tree.links.new(texture.outputs["Color"], bsdf.inputs["Base Color"])
+    if "Alpha" in bsdf.inputs:
+        material.node_tree.links.new(texture.outputs["Alpha"], bsdf.inputs["Alpha"])
+    # Resolve the installed Fast64 version's actual preset key immediately
+    # before conversion. New releases use an OoT-prefixed internal key, while
+    # older releases accepted the human-readable name.
+    material["Fast64_cutout_texture"] = True
     return material
 
 
@@ -333,6 +367,62 @@ def add_lapel(name, side, material):
     return add_flat_mesh(name, vertices, faces, material)
 
 
+def add_face_plate(name, material):
+    """Create a gently convex, UV-mapped face card over the modeled skull."""
+    center = (0.0, -0.70, 2.69)
+    radius_x = 0.66
+    radius_z = 0.66
+    segment_count = 12
+    vertices = [center]
+    uvs = [(0.5, 0.5)]
+    for index in range(segment_count):
+        angle = math.tau * index / segment_count
+        cosine = math.cos(angle)
+        sine = math.sin(angle)
+        vertices.append(
+            (
+                center[0] + radius_x * cosine,
+                -0.59,
+                center[2] + radius_z * sine,
+            )
+        )
+        uvs.append((0.5 + 0.5 * cosine, 0.5 + 0.5 * sine))
+
+    faces = [
+        (0, index + 1, ((index + 1) % segment_count) + 1)
+        for index in range(segment_count)
+    ]
+    mesh = bpy.data.meshes.new(name + "Mesh")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.update()
+    uv_layer = mesh.uv_layers.new(name="UVMap")
+    for polygon in mesh.polygons:
+        for loop_index in polygon.loop_indices:
+            vertex_index = mesh.loops[loop_index].vertex_index
+            uv_layer.data[loop_index].uv = uvs[vertex_index]
+
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj)
+    attach_material(obj, material)
+    apply_surface_shading(obj, smooth=True)
+    return obj
+
+
+def add_hidden_texture_carrier(name, material):
+    """Keep an alternate face texture in the export without visible geometry."""
+    vertices = [(-0.01, 0.0, 2.65), (0.01, 0.0, 2.65), (0.0, 0.0, 2.67)]
+    mesh = bpy.data.meshes.new(name + "Mesh")
+    mesh.from_pydata(vertices, [], [(0, 1, 2)])
+    mesh.update()
+    uv_layer = mesh.uv_layers.new(name="UVMap")
+    for loop_index, uv in enumerate(((0.0, 0.0), (1.0, 0.0), (0.5, 1.0))):
+        uv_layer.data[loop_index].uv = uv
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj)
+    attach_material(obj, material)
+    return obj
+
+
 def add_fallback_armature():
     """Make a preview armature with Navi-like bone names.
 
@@ -442,10 +532,58 @@ def import_navi_with_fast64():
         return None
 
 
+def fast64_converter_module_names():
+    roots = []
+    export_class = getattr(bpy.types, "OOT_ExportSkeleton", None)
+    if export_class is not None and ".fast64_internal" in export_class.__module__:
+        roots.append(export_class.__module__.partition(".fast64_internal")[0])
+    roots.extend(
+        name
+        for name in bpy.context.preferences.addons.keys()
+        if "fast64" in name.lower()
+    )
+    loaded = [
+        name for name in sys.modules if name.endswith("fast64_internal.f3d_material_converter")
+    ]
+    return list(
+        dict.fromkeys(
+            loaded
+            + [root + ".fast64_internal.f3d_material_converter" for root in roots if root]
+            + ["fast64_internal.f3d_material_converter"]
+        )
+    )
+
+
+def configure_cutout_conversion_presets(meshes):
+    materials = {
+        slot.material
+        for obj in meshes
+        for slot in obj.material_slots
+        if slot.material is not None and slot.material.get("Fast64_cutout_texture")
+    }
+    if not materials:
+        return True
+    failures = []
+    for module_name in fast64_converter_module_names():
+        try:
+            converter = importlib.import_module(module_name)
+            preset = converter.getDefaultMaterialPreset("Shaded Texture Cutout")
+            for material in materials:
+                material["convert_preset"] = preset
+            log("Configured Fast64 face cutout preset: " + preset)
+            return True
+        except Exception as exc:
+            failures.append(module_name + ": " + repr(exc))
+    log("Could not configure Fast64 face cutout preset: " + " | ".join(failures))
+    return False
+
+
 def convert_materials_to_f3d():
     """Use Fast64's current BSDF converter when the addon is installed."""
     scene = bpy.context.scene
     meshes = [obj for obj in bpy.data.objects if obj.type == "MESH"]
+    if not configure_cutout_conversion_presets(meshes):
+        return False
 
     def converted():
         materials = {
@@ -479,25 +617,8 @@ def convert_materials_to_f3d():
     # Blender 5.2 can load Fast64's OoT operators while failing to register the
     # legacy material-conversion operator. The implementation is still usable,
     # so locate the enabled package and invoke it directly.
-    roots = []
-    export_class = getattr(bpy.types, "OOT_ExportSkeleton", None)
-    if export_class is not None and ".fast64_internal" in export_class.__module__:
-        roots.append(export_class.__module__.partition(".fast64_internal")[0])
-    roots.extend(
-        name
-        for name in bpy.context.preferences.addons.keys()
-        if "fast64" in name.lower()
-    )
-    loaded_converter_modules = [
-        name for name in sys.modules if name.endswith("fast64_internal.f3d_material_converter")
-    ]
-
     failures = []
-    module_names = loaded_converter_modules + [
-        root + ".fast64_internal.f3d_material_converter" for root in roots if root
-    ]
-    module_names.append("fast64_internal.f3d_material_converter")
-    for module_name in dict.fromkeys(module_names):
+    for module_name in fast64_converter_module_names():
         try:
             converter = importlib.import_module(module_name)
             converter.convertAllBSDFtoF3D(meshes, True)
@@ -538,9 +659,11 @@ def apply_trump_colors_to_f3d(meshes):
                 f3d_mat.default_light_color = color
                 f3d_mat.set_lights = True
                 # Preserve translucent wing alpha in the otherwise shaded
-                # solid combiner.
-                f3d_mat.prim_color = (1.0, 1.0, 1.0, color[3])
-                f3d_mat.combiner1.D_alpha = "PRIMITIVE"
+                # solid combiner. Textured materials retain the cutout alpha
+                # configured by Fast64's Shaded Texture Cutout preset.
+                if not base_name.startswith("TrumpFairy_Face"):
+                    f3d_mat.prim_color = (1.0, 1.0, 1.0, color[3])
+                    f3d_mat.combiner1.D_alpha = "PRIMITIVE"
     if len(updated) != len(TRUMP_MATERIAL_COLORS):
         raise RuntimeError(
             "Applied explicit F3D colors to {0} of {1} Trump materials.".format(
@@ -593,7 +716,9 @@ def build_character():
     # geometry: broad forehead, tapered jaw, swept blond hair, narrowed eyes,
     # pronounced brows, rounded nose, pursed mouth, navy suit, and red tie.
     if OOT_STYLE:
-        skin_color = (0.82, 0.46, 0.27)
+        # Neutral warm tan matched to the painted face edge. The earlier
+        # saturated orange showed through as a halo around the cutout.
+        skin_color = (0.64, 0.42, 0.30)
         hair_color = (0.91, 0.68, 0.29)
         hair_highlight_color = (1.00, 0.86, 0.52)
         hair_shadow_color = (0.55, 0.34, 0.10)
@@ -618,12 +743,16 @@ def build_character():
     suit = make_material("TrumpFairy_Suit", suit_color)
     shirt = make_material("TrumpFairy_Shirt", shirt_color)
     tie = make_material("TrumpFairy_Tie", tie_color)
-    eye_white = make_material("TrumpFairy_EyeWhite", (0.88, 0.86, 0.78))
-    eye_dark = make_material("TrumpFairy_EyeDark", (0.025, 0.012, 0.01))
-    mouth = make_material("TrumpFairy_Mouth", (0.17, 0.012, 0.012))
-    lip = make_material("TrumpFairy_Lip", (0.58, 0.16, 0.13))
     shoe = make_material("TrumpFairy_Shoes", (0.02, 0.015, 0.012))
     wing = make_material("TrumpFairy_Wings", wing_color, alpha=0.62 if OOT_STYLE else 1.0)
+    face = make_texture_material(
+        "TrumpFairy_Face", FACE_TEXTURE_PATH, "TrumpFairyFaceTexture"
+    )
+    talking_face = make_texture_material(
+        "TrumpFairy_FaceTalking",
+        FACE_TALKING_TEXTURE_PATH,
+        "TrumpFairyFaceTalkingTexture",
+    )
 
     parts = []
 
@@ -668,21 +797,13 @@ def build_character():
     parts.append(add_uv_sphere("TrumpFairy_Sideburn_L", (-0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 8, 5, True))
     parts.append(add_uv_sphere("TrumpFairy_Sideburn_R", (0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 8, 5, True))
 
-    # Narrowed eyes and angled brows frame a rounded bridge/tip. The mouth is
-    # built from two shallow lip forms instead of a sharp V-shaped frown.
-    parts.append(add_uv_sphere("TrumpFairy_Eye_L", (-0.24, -0.515, 2.76), (0.13, 0.035, 0.060), eye_white, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Eye_R", (0.24, -0.515, 2.76), (0.13, 0.035, 0.060), eye_white, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Pupil_L", (-0.23, -0.552, 2.76), (0.035, 0.018, 0.042), eye_dark, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Pupil_R", (0.23, -0.552, 2.76), (0.035, 0.018, 0.042), eye_dark, 8, 5, True))
-    parts.append(add_cylinder_between("TrumpFairy_Brow_L", (-0.39, -0.54, 2.93), (-0.07, -0.58, 2.87), 0.042, hair_shadow))
-    parts.append(add_cylinder_between("TrumpFairy_Brow_R", (0.07, -0.58, 2.87), (0.39, -0.54, 2.93), 0.042, hair_shadow))
-    parts.append(add_uv_sphere("TrumpFairy_NoseBridge", (0.0, -0.48, 2.64), (0.115, 0.13, 0.25), skin, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_NoseTip", (0.0, -0.61, 2.52), (0.17, 0.13, 0.13), skin, 8, 5, True))
-    parts.append(add_ico("TrumpFairy_Nostril_L", (-0.085, -0.715, 2.50), (0.027, 0.012, 0.018), mouth, 1, True))
-    parts.append(add_ico("TrumpFairy_Nostril_R", (0.085, -0.715, 2.50), (0.027, 0.012, 0.018), mouth, 1, True))
-    parts.append(add_uv_sphere("TrumpFairy_UpperLip", (0.0, -0.625, 2.34), (0.17, 0.035, 0.045), lip, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_LowerLip", (0.0, -0.620, 2.285), (0.15, 0.030, 0.040), lip, 8, 5, True))
-    parts.append(add_cylinder_between("TrumpFairy_MouthLine", (-0.16, -0.661, 2.325), (0.16, -0.661, 2.325), 0.018, mouth))
+    # The approved painted face stays legible at Navi's tiny on-screen size.
+    # A shallow convex card preserves some volume while avoiding photo-wrap
+    # distortion over the full skull.
+    parts.append(add_face_plate("TrumpFairy_FacePlate", face))
+    parts.append(
+        add_hidden_texture_carrier("TrumpFairy_FaceTalkingCarrier", talking_face)
+    )
 
     # Navi wings stay behind the suit; this is still a fairy replacement.
     parts.append(add_wing("TrumpFairy_Wing_L", -1, wing))

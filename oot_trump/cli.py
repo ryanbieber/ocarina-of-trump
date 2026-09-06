@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -309,6 +310,112 @@ def preserve_fairy_shared_assets(repo: Path) -> None:
     print("preserved gameplay_keep glow assets alongside the Trump Fairy export")
 
 
+def install_navi_face_animation(repo: Path) -> None:
+    """Route Fast64's face texture through a runtime-selectable N64 segment."""
+    skeleton_dir = repo / "assets" / "objects" / "gameplay_keep"
+    source_path = skeleton_dir / "fairy_skel.c"
+    header_path = skeleton_dir / "fairy_skel.h"
+    actor_path = repo / "src" / "overlays" / "actors" / "ovl_En_Elf" / "z_en_elf.c"
+    for path in (source_path, header_path, actor_path):
+        if not path.is_file():
+            raise ProjectError(f"missing ZeldaRET face-animation input: {path}")
+
+    source = source_path.read_text(encoding="utf-8")
+    texture_call = re.compile(
+        r"gsDPSetTextureImage\(\s*[^,\n]+,\s*[^,\n]+,\s*[^,\n]+,\s*"
+        r"(?P<symbol>[A-Za-z_]\w*)\s*\)"
+    )
+    symbols = {match.group("symbol") for match in texture_call.finditer(source)}
+    idle_candidates = sorted(
+        symbol
+        for symbol in symbols
+        if "TrumpFairyFaceTexture" in symbol and "Talking" not in symbol
+    )
+    talking_candidates = sorted(
+        symbol for symbol in symbols if "TrumpFairyFaceTalkingTexture" in symbol
+    )
+    if len(idle_candidates) != 1 or len(talking_candidates) != 1:
+        raise ProjectError(
+            "Fast64 face export must contain exactly one idle and one talking texture "
+            f"(found idle={idle_candidates}, talking={talking_candidates})"
+        )
+    idle_symbol = idle_candidates[0]
+    talking_symbol = talking_candidates[0]
+
+    def use_dynamic_segment(match: re.Match[str]) -> str:
+        if match.group("symbol") != idle_symbol:
+            return match.group(0)
+        return match.group(0).replace(idle_symbol, "0x09000000")
+
+    source, replacement_count = texture_call.subn(use_dynamic_segment, source)
+    if replacement_count < 1 or "0x09000000" not in source:
+        raise ProjectError("could not route the idle Trump face texture through segment 9")
+    source_path.write_text(source, encoding="utf-8")
+
+    declarations = []
+    for symbol in (idle_symbol, talking_symbol):
+        declaration = re.search(
+            rf"\b(?P<type>u8|u16|u32|u64)\s+{re.escape(symbol)}\s*\[", source
+        )
+        if declaration is None:
+            raise ProjectError(f"could not determine Fast64 texture type for {symbol}")
+        declarations.append(f"extern {declaration.group('type')} {symbol}[];")
+
+    header = header_path.read_text(encoding="utf-8")
+    header_start = "/* OOT_TRUMP_FACE_TEXTURES_START */"
+    header_end = "/* OOT_TRUMP_FACE_TEXTURES_END */"
+    header_block = "\n".join([header_start, *declarations, header_end])
+    if header_start in header:
+        header = re.sub(
+            re.escape(header_start) + r".*?" + re.escape(header_end),
+            header_block,
+            header,
+            flags=re.DOTALL,
+        )
+    else:
+        endif = header.rfind("#endif")
+        if endif < 0:
+            raise ProjectError("Fast64 fairy_skel.h has no closing #endif")
+        header = header[:endif] + header_block + "\n\n" + header[endif:]
+    header_path.write_text(header, encoding="utf-8")
+
+    actor = actor_path.read_text(encoding="utf-8")
+    declaration = "extern s32 OotTrump_IsVoicePlaying(void); /* OOT_TRUMP_FACE_VOICE_STATE */"
+    if declaration not in actor:
+        include_anchor = '#include "assets/objects/gameplay_keep/fairy_anim.h"'
+        if include_anchor not in actor:
+            raise ProjectError("En_Elf face-animation include anchor not found")
+        actor = actor.replace(include_anchor, include_anchor + "\n\n" + declaration, 1)
+
+    draw_anchor = "            POLY_XLU_DISP = SkelAnime_Draw("
+    face_start = "            /* OOT_TRUMP_FACE_SEGMENT_START */"
+    face_end = "            /* OOT_TRUMP_FACE_SEGMENT_END */"
+    face_block = "\n".join(
+        [
+            face_start,
+            "            gSPSegment(POLY_XLU_DISP++, 0x09,",
+            "                       ((this->actor.params == FAIRY_NAVI) && OotTrump_IsVoicePlaying() &&",
+            "                        ((this->timer >> 2) & 1))",
+            f"                           ? {talking_symbol}",
+            f"                           : {idle_symbol});",
+            face_end,
+        ]
+    )
+    if face_start in actor:
+        actor = re.sub(
+            re.escape(face_start) + r".*?" + re.escape(face_end),
+            face_block,
+            actor,
+            flags=re.DOTALL,
+        )
+    elif draw_anchor in actor:
+        actor = actor.replace(draw_anchor, face_block + "\n" + draw_anchor, 1)
+    else:
+        raise ProjectError("En_Elf skeleton draw anchor not found")
+    actor_path.write_text(actor, encoding="utf-8")
+    print("installed voice-synchronized Trump Navi mouth animation")
+
+
 def export_navi_model(repo: Path, blender: str | None = None) -> None:
     if blender is None:
         blender = validate_model_tools()
@@ -339,6 +446,7 @@ def export_navi_model(repo: Path, blender: str | None = None) -> None:
         check=True,
     )
     preserve_fairy_shared_assets(repo)
+    install_navi_face_animation(repo)
     validate_exported_navi_model(repo)
 
 

@@ -134,6 +134,10 @@ class AudioPatchTests(unittest.TestCase):
                 encoding="utf-8",
             )
             _write_message_include(root / "oot_trump_voice.inc.c", clips)
+            self.assertIn(
+                "s32 OotTrump_IsVoicePlaying(void)",
+                (root / "oot_trump_voice.inc.c").read_text(),
+            )
             _patch_message_source(message)
             patched = message.read_text()
             self.assertLess(patched.index("OOT_TRUMP_MESSAGE_INCLUDE"), patched.index("Message_CloseTextbox"))
