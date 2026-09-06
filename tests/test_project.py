@@ -13,6 +13,7 @@ from oot_trump.project import (
     ProjectError,
     clean_toolchain_environment,
     patch_armips_pthread,
+    patch_default_english_language,
     stage_baserom,
 )
 
@@ -49,6 +50,40 @@ class ProjectTests(unittest.TestCase):
 
             self.assertIn("-Wno-sign-compare -pthread $< -o $@", first)
             self.assertEqual(makefile.read_text(encoding="utf-8"), first)
+
+    def test_default_english_patch_is_idempotent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            common_data = root / "src/code/z_common_data.c"
+            sram = root / "src/code/z_sram.c"
+            common_data.parent.mkdir(parents=True)
+            common_data.write_text(
+                """#if OOT_NTSC && OOT_VERSION < GC_US || PLATFORM_IQUE
+    if (gCurrentRegion == REGION_JP) {
+        gSaveContext.language = LANGUAGE_JPN;
+    }
+    if (gCurrentRegion == REGION_US) {
+        gSaveContext.language = LANGUAGE_ENG;
+    }
+#endif
+""",
+                encoding="utf-8",
+            )
+            sram.write_text(
+                "#if OOT_NTSC\n    LANGUAGE_JPN, // SRAM_HEADER_LANGUAGE\n#endif\n",
+                encoding="utf-8",
+            )
+
+            patch_default_english_language(root)
+            first_common = common_data.read_text(encoding="utf-8")
+            first_sram = sram.read_text(encoding="utf-8")
+            patch_default_english_language(root)
+
+            self.assertIn("gSaveContext.language = LANGUAGE_ENG;", first_common)
+            self.assertNotIn("gCurrentRegion", first_common)
+            self.assertIn("LANGUAGE_ENG, // SRAM_HEADER_LANGUAGE", first_sram)
+            self.assertEqual(common_data.read_text(encoding="utf-8"), first_common)
+            self.assertEqual(sram.read_text(encoding="utf-8"), first_sram)
 
     def test_stage_baserom_validates_and_copies_to_expected_location(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

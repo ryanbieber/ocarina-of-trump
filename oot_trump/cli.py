@@ -19,6 +19,7 @@ from .project import (
     find_baserom,
     md5,
     patch_armips_pthread,
+    patch_default_english_language,
     run,
     stage_baserom,
 )
@@ -111,6 +112,7 @@ def bootstrap(repo: Path, config: ProjectConfig, setup: bool) -> None:
     run(["git", "fetch", "origin", config.oot_revision], cwd=repo)
     run(["git", "checkout", "--detach", config.oot_revision], cwd=repo)
     patch_armips_pthread(repo)
+    patch_default_english_language(repo)
     if setup:
         find_baserom(repo, config)
         run(
@@ -157,6 +159,19 @@ def build(repo: Path) -> None:
     errors = validate(allow_missing_audio=False)
     if errors:
         raise ProjectError("content validation failed:\n- " + "\n- ".join(errors))
+    region_marker = repo / "build" / config.version / ".oot-trump-region"
+    try:
+        cached_region = region_marker.read_text(encoding="utf-8").strip()
+    except OSError:
+        cached_region = ""
+    if cached_region != "US":
+        print("clearing cached ZeldaRET objects so REGION=US is applied")
+        run(
+            ["make", "clean", f"VERSION={config.version}", "REGION=US"],
+            cwd=repo,
+            clean_toolchain=True,
+        )
+
     apply(repo, check=False)
     count = install_audio_backend(repo, load_manifest(), config, require_all=True)
     print(f"installed {count} voice clips into ZeldaRET")
@@ -165,6 +180,8 @@ def build(repo: Path) -> None:
         cwd=repo,
         clean_toolchain=True,
     )
+    region_marker.parent.mkdir(parents=True, exist_ok=True)
+    region_marker.write_text("US\n", encoding="utf-8")
 
 
 def validate_exported_navi_model(repo: Path) -> None:

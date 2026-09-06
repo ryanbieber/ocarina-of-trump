@@ -164,21 +164,54 @@ class CliTests(unittest.TestCase):
 
     def test_mod_build_disables_retail_rom_comparison(self) -> None:
         config = SimpleNamespace(version="ntsc-1.0")
-        with (
-            patch("oot_trump.cli.validate", return_value=[]),
-            patch("oot_trump.cli.ProjectConfig.load", return_value=config),
-            patch("oot_trump.cli.apply"),
-            patch("oot_trump.cli.load_manifest", return_value=[]),
-            patch("oot_trump.cli.install_audio_backend", return_value=176),
-            patch("oot_trump.cli.run") as run,
-        ):
-            build(Path("/oot"))
+        with TemporaryDirectory() as directory:
+            repo = Path(directory)
+            marker = repo / "build/ntsc-1.0/.oot-trump-region"
+            marker.parent.mkdir(parents=True)
+            marker.write_text("US\n", encoding="utf-8")
+            with (
+                patch("oot_trump.cli.validate", return_value=[]),
+                patch("oot_trump.cli.ProjectConfig.load", return_value=config),
+                patch("oot_trump.cli.apply"),
+                patch("oot_trump.cli.load_manifest", return_value=[]),
+                patch("oot_trump.cli.install_audio_backend", return_value=176),
+                patch("oot_trump.cli.run") as run,
+            ):
+                build(repo)
 
         run.assert_called_once_with(
             ["make", "VERSION=ntsc-1.0", "REGION=US", "COMPARE=0"],
-            cwd=Path("/oot"),
+            cwd=repo,
             clean_toolchain=True,
         )
+
+    def test_mod_build_clears_objects_from_an_unmarked_region_build(self) -> None:
+        config = SimpleNamespace(version="ntsc-1.0")
+        with TemporaryDirectory() as directory:
+            repo = Path(directory)
+            with (
+                patch("oot_trump.cli.validate", return_value=[]),
+                patch("oot_trump.cli.ProjectConfig.load", return_value=config),
+                patch("oot_trump.cli.apply"),
+                patch("oot_trump.cli.load_manifest", return_value=[]),
+                patch("oot_trump.cli.install_audio_backend", return_value=176),
+                patch("oot_trump.cli.run") as run,
+            ):
+                build(repo)
+
+            self.assertEqual(run.call_count, 2)
+            self.assertEqual(
+                run.call_args_list[0].args[0],
+                ["make", "clean", "VERSION=ntsc-1.0", "REGION=US"],
+            )
+            self.assertEqual(
+                run.call_args_list[1].args[0],
+                ["make", "VERSION=ntsc-1.0", "REGION=US", "COMPARE=0"],
+            )
+            self.assertEqual(
+                (repo / "build/ntsc-1.0/.oot-trump-region").read_text(encoding="utf-8"),
+                "US\n",
+            )
 
     def test_full_build_requires_complete_voice_inputs(self) -> None:
         missing = "missing 175 voice WAVs in /unused/content/voice"

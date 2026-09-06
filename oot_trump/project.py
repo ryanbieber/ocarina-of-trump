@@ -101,6 +101,47 @@ def patch_armips_pthread(repo: Path) -> None:
     print("patched ZeldaRET armips linker flags (-pthread)")
 
 
+def patch_default_english_language(repo: Path) -> None:
+    """Force this English-language mod to start and initialize SRAM in English."""
+    common_data = repo / "src" / "code" / "z_common_data.c"
+    sram = repo / "src" / "code" / "z_sram.c"
+    try:
+        common_source = common_data.read_text(encoding="utf-8")
+        sram_source = sram.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ProjectError("Pinned ZeldaRET language sources were not found") from exc
+
+    region_selection = """#if OOT_NTSC && OOT_VERSION < GC_US || PLATFORM_IQUE
+    if (gCurrentRegion == REGION_JP) {
+        gSaveContext.language = LANGUAGE_JPN;
+    }
+    if (gCurrentRegion == REGION_US) {
+        gSaveContext.language = LANGUAGE_ENG;
+    }
+"""
+    forced_english = """#if OOT_NTSC && OOT_VERSION < GC_US || PLATFORM_IQUE
+    gSaveContext.language = LANGUAGE_ENG;
+"""
+    if region_selection in common_source:
+        common_data.write_text(
+            common_source.replace(region_selection, forced_english, 1), encoding="utf-8"
+        )
+    elif forced_english not in common_source:
+        raise ProjectError("Pinned ZeldaRET startup language block was not found")
+
+    japanese_sram = """#if OOT_NTSC
+    LANGUAGE_JPN, // SRAM_HEADER_LANGUAGE
+"""
+    english_sram = """#if OOT_NTSC
+    LANGUAGE_ENG, // SRAM_HEADER_LANGUAGE
+"""
+    if japanese_sram in sram_source:
+        sram.write_text(sram_source.replace(japanese_sram, english_sram, 1), encoding="utf-8")
+    elif english_sram not in sram_source:
+        raise ProjectError("Pinned ZeldaRET SRAM language block was not found")
+    print("forced NTSC startup and SRAM language to English")
+
+
 def git_revision(repo: Path) -> str:
     result = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=repo, check=True, text=True, capture_output=True
