@@ -143,10 +143,13 @@ SFX table, generates the text-ID lookup, and hooks message start/continue/close.
 It is idempotent, so rerun it after adding or replacing WAVs.
 
 Strict validation checks every required message ID, textbox dimensions, audio
-format/duration, deterministic filename, provenance, and the 10 MiB estimated
+format/duration, consistent -20 dBFS active-speech loudness, a -3 dBFS peak
+ceiling, deterministic filename, provenance, and the 10 MiB estimated
 N64 VADPCM budget:
 
 ```bash
+python3 scripts/normalize_voice_catalog.py
+python3 scripts/normalize_voice_catalog.py --check
 python3 -m oot_trump validate-content
 ```
 
