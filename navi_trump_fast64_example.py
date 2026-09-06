@@ -423,7 +423,11 @@ def import_navi_with_fast64():
         settings.name = "gFairySkel"
         settings.folder = "gameplay_keep"
         settings.actorOverlayName = "ovl_En_Elf"
-        settings.import_animations = True
+        # The generated replacement keeps ZeldaRET's existing gFairyAnim.
+        # Importing every animation referenced by split gameplay_keep sources
+        # makes Fast64 chase unrelated symbols such as gArrow1_Anim and abort
+        # before returning the otherwise valid gFairySkel armature.
+        settings.import_animations = False
         settings.importNormals = True
         settings.removeDoubles = True
         settings.autoDetectActorScale = True
