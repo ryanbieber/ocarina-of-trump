@@ -74,7 +74,7 @@ $WslBlender = (& wsl.exe wslpath -u $Blender.FullName).Trim()
 $Rom = "C:\path\to\legally-obtained-baserom.z64"
 $WslRom = (& wsl.exe wslpath -u $Rom).Trim()
 
-& wsl.exe env "OOT_TRUMP_BLENDER=$WslBlender" bash -lc 'cd ~/ocarina-of-trump && source ~/miniconda3/bin/activate && ./scripts/build-rom.sh "$1"' _ "$WslRom"
+& wsl.exe env "OOT_TRUMP_BLENDER=$WslBlender" bash -lc 'export PATH="$HOME/miniconda3/bin:$PATH"; cd ~/ocarina-of-trump && ./scripts/build-rom.sh "$1"' _ "$WslRom"
 ```
 
 The one-shot command validates the ROM before copying it, clones and pins ZeldaRET, runs
