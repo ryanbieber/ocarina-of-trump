@@ -49,17 +49,33 @@ baserom with one command:
 ```
 
 The full build first launches Blender in background mode and verifies that it
-is Blender 4.x with Fast64's OoT skeleton importer and exporter enabled. Run
+is Blender 4.x or 5.x with Fast64's OoT skeleton importer and exporter enabled. Run
 the same preflight by itself with:
 
 ```bash
 python3 -m oot_trump check-model-tools
 ```
 
-On WSL, Blender and Fast64 must be installed in Linux; a Windows `blender.exe`
-is deliberately rejected because it cannot safely consume the build's Linux
-paths. Set `OOT_TRUMP_BLENDER=/absolute/path/to/linux/blender` when Blender is
-not on `PATH`.
+On WSL, either Linux Blender or Windows Blender can be used. For Windows
+Blender, set `OOT_TRUMP_BLENDER` to its WSL path; the exporter automatically
+converts the decomp, script, and output paths for Windows. For example:
+
+```bash
+OOT_TRUMP_BLENDER="/mnt/c/Program Files/Blender Foundation/Blender 5.2/blender.exe" \
+python3 -m oot_trump check-model-tools
+```
+
+The equivalent PowerShell flow uses WSL for ZeldaRET compilation and the
+installed Windows copy of Blender/Fast64:
+
+```powershell
+$Blender = Get-ChildItem "$env:ProgramFiles\Blender Foundation\Blender *\blender.exe" | Sort-Object FullName -Descending | Select-Object -First 1
+$WslBlender = (& wsl.exe wslpath -u $Blender.FullName).Trim()
+$Rom = "C:\path\to\legally-obtained-baserom.z64"
+$WslRom = (& wsl.exe wslpath -u $Rom).Trim()
+
+& wsl.exe env "OOT_TRUMP_BLENDER=$WslBlender" bash -lc 'cd ~/ocarina-of-trump && source ~/miniconda3/bin/activate && ./scripts/build-rom.sh "$1"' _ "$WslRom"
+```
 
 The one-shot command validates the ROM before copying it, clones and pins ZeldaRET, runs
 `make setup` when needed, exports the Trump Navi model through Blender/Fast64,

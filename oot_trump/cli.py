@@ -30,23 +30,41 @@ BLENDER_ENV = "OOT_TRUMP_BLENDER"
 
 
 def find_blender() -> str:
-    """Locate the Linux Blender executable used by the Fast64 exporter."""
+    """Locate the Blender executable used by the Fast64 exporter."""
     configured = os.environ.get(BLENDER_ENV, "blender")
     blender = shutil.which(configured)
     if blender is None:
         raise ProjectError(
             "Blender was not found in this environment. On WSL, the Windows "
-            "Blender installation and add-ons are separate from Linux. Install "
-            "Blender 4.x in WSL, ensure `blender --version` works, or set "
-            f"{BLENDER_ENV}=/absolute/path/to/linux/blender"
-        )
-    if Path(os.path.realpath(blender)).suffix.lower() == ".exe":
-        raise ProjectError(
-            "Windows Blender was detected from WSL, but Fast64 model export uses "
-            "paths inside the Linux filesystem. Install the Linux Blender 4.x "
-            f"build in WSL and point {BLENDER_ENV} to its `blender` executable"
+            "Blender installation is not normally on the Linux PATH. Set "
+            f"{BLENDER_ENV} to either a Linux `blender` binary or the WSL path "
+            "to Windows `blender.exe`"
         )
     return blender
+
+
+def is_windows_blender(blender: str) -> bool:
+    return Path(os.path.realpath(blender)).suffix.lower() == ".exe"
+
+
+def path_for_blender(path: Path, blender: str) -> str:
+    """Convert WSL paths when invoking Blender's Windows build."""
+    if not is_windows_blender(blender):
+        return str(path)
+    try:
+        result = subprocess.run(
+            ["wslpath", "-w", str(path)],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ProjectError(
+            "Windows Blender was selected, but the build could not convert its "
+            "Linux paths with `wslpath`. Run the build from WSL or select Linux Blender"
+        ) from exc
+    return result.stdout.strip()
 
 
 def validate_model_tools() -> str:
@@ -56,8 +74,8 @@ def validate_model_tools() -> str:
         (
             "import bpy",
             "version=bpy.app.version",
-            "assert (4, 0, 0) <= version < (5, 0, 0), "
-            "f'Ocarina of Trump requires Blender 4.x; found {bpy.app.version_string}'",
+            "assert (4, 0, 0) <= version < (6, 0, 0), "
+            "f'Ocarina of Trump requires Blender 4.x or 5.x; found {bpy.app.version_string}'",
             "assert hasattr(bpy.ops.object, 'oot_import_skeleton'), "
             "'Fast64 is not enabled or its OoT skeleton importer is unavailable'",
             "assert hasattr(bpy.ops.object, 'oot_export_skeleton'), "
@@ -167,14 +185,21 @@ def export_navi_model(repo: Path, blender: str | None = None) -> None:
     environment = os.environ.copy()
     environment.update(
         {
-            "OOT_DECOMP_PATH": str(repo),
+            "OOT_DECOMP_PATH": path_for_blender(repo, blender),
             "NAVI_TRUMP_IMPORT": "1",
             "NAVI_TRUMP_EXPORT": "1",
-            "NAVI_TRUMP_BLEND_OUTPUT": str(ROOT / ".work" / "navi_trump_export.blend"),
+            "NAVI_TRUMP_BLEND_OUTPUT": path_for_blender(
+                ROOT / ".work" / "navi_trump_export.blend", blender
+            ),
         }
     )
     subprocess.run(
-        [blender, "--background", "--python", str(ROOT / "navi_trump_fast64_example.py")],
+        [
+            blender,
+            "--background",
+            "--python",
+            path_for_blender(ROOT / "navi_trump_fast64_example.py", blender),
+        ],
         cwd=ROOT,
         env=environment,
         check=True,

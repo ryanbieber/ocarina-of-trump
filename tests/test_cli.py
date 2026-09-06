@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from oot_trump.cli import build, find_blender, validate_model_tools
+from oot_trump.cli import build, find_blender, path_for_blender, validate_model_tools
 from oot_trump.project import ProjectError
 
 
@@ -18,10 +18,17 @@ class CliTests(unittest.TestCase):
             with self.assertRaisesRegex(ProjectError, "Windows Blender installation"):
                 find_blender()
 
-    def test_find_blender_rejects_windows_executable(self) -> None:
+    def test_find_blender_accepts_configured_windows_executable(self) -> None:
         with patch("oot_trump.cli.shutil.which", return_value="/mnt/c/Blender/blender.exe"):
-            with self.assertRaisesRegex(ProjectError, "Windows Blender was detected"):
-                find_blender()
+            self.assertEqual(find_blender(), "/mnt/c/Blender/blender.exe")
+
+    def test_windows_blender_paths_are_converted_with_wslpath(self) -> None:
+        completed = SimpleNamespace(stdout="\\\\wsl.localhost\\Debian\\home\\user\\oot\n")
+        with patch("oot_trump.cli.subprocess.run", return_value=completed) as run:
+            result = path_for_blender(Path("/home/user/oot"), "/mnt/c/Blender/blender.exe")
+
+        self.assertEqual(result, r"\\wsl.localhost\Debian\home\user\oot")
+        self.assertEqual(run.call_args.args[0], ["wslpath", "-w", "/home/user/oot"])
 
     def test_model_tool_validation_checks_fast64_operators(self) -> None:
         completed = SimpleNamespace(
