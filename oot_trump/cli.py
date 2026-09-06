@@ -173,6 +173,10 @@ def validate_exported_navi_model(repo: Path) -> None:
         data = source.read_text(encoding="utf-8")
     except OSError as exc:
         raise ProjectError(f"Fast64 did not produce the expected model source: {source}") from exc
+    if "FlexSkeletonHeader gFairySkel" in data:
+        raise ProjectError(
+            "Fast64 exported Trump Navi as a flex skeleton; En_Elf requires rigid vertex binding"
+        )
     missing = [marker for marker in ("gFairySkel", "TrumpFairy") if marker not in data]
     if missing:
         raise ProjectError(

@@ -697,20 +697,15 @@ def join_and_bind(parts, armature):
     for bone_name in deform_bones:
         armature.data.bones[bone_name].use_deform = True
 
-    # Bind body geometry to the fairy root. Split each generated wing between
-    # the real upper/lower wing limbs so the original gFairyAnim motion is
-    # retained after Fast64 export.
+    # Bind body geometry to the fairy root and each complete generated wing to
+    # one of Navi's animated wing limbs. A triangle whose vertices use multiple
+    # limbs makes Fast64 emit a FlexSkeletonHeader, but En_Elf intentionally
+    # uses the rigid SkeletonHeader draw path. Keep every triangle on one limb.
     for obj in parts:
         if obj.name.startswith("TrumpFairy_Wing_"):
             side = "L" if obj.name.endswith("_L") else "R"
             upper = obj.vertex_groups.new(name=wing_names[side]["upper"])
-            lower = obj.vertex_groups.new(name=wing_names[side]["lower"])
-            upper_indices = [vertex.index for vertex in obj.data.vertices if vertex.co.z >= 2.0]
-            lower_indices = [vertex.index for vertex in obj.data.vertices if vertex.co.z < 2.0]
-            if upper_indices:
-                upper.add(upper_indices, 1.0, "REPLACE")
-            if lower_indices:
-                lower.add(lower_indices, 1.0, "REPLACE")
+            upper.add([vertex.index for vertex in obj.data.vertices], 1.0, "REPLACE")
         else:
             group = obj.vertex_groups.new(name=root_name)
             group.add([vertex.index for vertex in obj.data.vertices], 1.0, "REPLACE")

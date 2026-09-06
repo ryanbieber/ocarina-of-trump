@@ -19,6 +19,16 @@ from oot_trump.project import ProjectError
 
 
 class CliTests(unittest.TestCase):
+    def test_trump_fairy_keeps_rigid_wing_vertex_binding(self) -> None:
+        script = (Path(__file__).parent.parent / "navi_trump_fast64_example.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            'upper.add([vertex.index for vertex in obj.data.vertices], 1.0, "REPLACE")',
+            script,
+        )
+        self.assertNotIn("vertex.co.z >= 2.0", script)
+
     def test_model_export_injects_settings_into_blender_python(self) -> None:
         with (
             patch(
@@ -73,6 +83,13 @@ class CliTests(unittest.TestCase):
             source.parent.mkdir(parents=True)
             source.write_text("SkeletonHeader gFairySkel;\n", encoding="utf-8")
             with self.assertRaisesRegex(ProjectError, "missing: TrumpFairy"):
+                validate_exported_navi_model(repo)
+
+            source.write_text(
+                "FlexSkeletonHeader gFairySkel; Gfx TrumpFairy_Skin[] = {};\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ProjectError, "requires rigid vertex binding"):
                 validate_exported_navi_model(repo)
 
             source.write_text(
