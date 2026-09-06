@@ -56,6 +56,14 @@ the same preflight by itself with:
 python3 -m oot_trump check-model-tools
 ```
 
+The preflight uses Blender's registered RNA rather than the dynamic `bpy.ops`
+attribute list. If Fast64 is installed but disabled, it attempts to enable the
+add-on and save that Blender profile's preference before validating it.
+
+For Blender 5.2, where Fast64 may load its OoT operators without registering
+the legacy BSDF conversion operator, the model script calls Fast64's underlying
+material converter directly and verifies that every exported material is F3D.
+
 On WSL, either Linux Blender or Windows Blender can be used. For Windows
 Blender, set `OOT_TRUMP_BLENDER` to its WSL path; the exporter automatically
 converts the decomp, script, and output paths for Windows. For example:
@@ -83,6 +91,12 @@ message slot is active. It validates the ROM before copying it, clones and pins 
 patches all English Navi dialogue, installs the voice soundfonts, and builds the
 ROM. The result remains under `.work/oot/build/`. The command is safe to rerun;
 it reuses an existing extraction and generated checkout.
+
+The model defaults to `NAVI_TRUMP_MODEL_SCALE=0.52`, applied to both its body
+parts and their positions around Navi's centered pivot. To fine-tune its in-game
+size without editing the Blender script, set a different value on the one-shot
+command (for example `NAVI_TRUMP_MODEL_SCALE=0.46`). The exporter passes this
+setting into Windows Blender when the build runs through WSL.
 
 For an audio-and-dialogue test ROM that retains vanilla Navi's model:
 
@@ -135,10 +149,13 @@ SFX table, generates the text-ID lookup, and hooks message start/continue/close.
 It is idempotent, so rerun it after adding or replacing WAVs.
 
 Strict validation checks every required message ID, textbox dimensions, audio
-format/duration, deterministic filename, provenance, and the 10 MiB estimated
+format/duration, consistent -20 dBFS active-speech loudness, a -3 dBFS peak
+ceiling, deterministic filename, provenance, and the 10 MiB estimated
 N64 VADPCM budget:
 
 ```bash
+python3 scripts/normalize_voice_catalog.py
+python3 scripts/normalize_voice_catalog.py --check
 python3 -m oot_trump validate-content
 ```
 
@@ -183,8 +200,9 @@ ZeldaRET. It stops before compilation if any production WAV is missing.
 
 ## Fast64 model workflow
 
-The model script now reads configuration from the environment and binds its
-four wing regions to the real animated fairy wing limbs instead of the root:
+The model script reads configuration from the environment and binds the rigid
+replacement to Navi's central scaled display limb. The current generated wings
+are static; this keeps the `SkeletonHeader` draw path required by `En_Elf`:
 
 ```bash
 OOT_DECOMP_PATH="$PWD/.work/oot" \

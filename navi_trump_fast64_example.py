@@ -1,7 +1,7 @@
-"""Navi -> stylized Trump fairy example for Blender + Fast64.
+"""Build and export the Trump fairy replacement for Blender + Fast64.
 
 What this script does:
-  * Builds a deliberately low-poly parody character with wings.
+  * Builds a compact, N64-budget parody likeness with wings.
   * Reuses an already-imported OoT/Fast64 armature when one exists.
   * Can import gFairySkel automatically when OOT_DECOMP_PATH is configured.
   * Converts the generated Principled materials to Fast64 F3D materials when
@@ -9,10 +9,9 @@ What this script does:
   * Saves a .blend file next to this script.
 
 Important:
-  * This is an example/template, not a finished ROM hack.
-  * The generated mesh is weighted to Navi's root bone so it follows her
-    movement. Assign the wing vertices to Navi's wing bones later if you want
-    animated wings.
+  * The generated mesh is rigidly bound to Navi's display limb. En_Elf uses a
+    rigid SkeletonHeader, so weighted/flex geometry will not render correctly.
+  * Wings are intentionally static because every vertex uses that one limb.
   * Do not add bones to the imported Navi skeleton until the basic replacement
     works. En_Elf expects the original fairy skeleton structure.
 
@@ -31,8 +30,10 @@ Fast64's current OoT operators used here are:
   object.convert_bsdf
 """
 
+import importlib
 import math
 import os
+import sys
 
 import bpy
 from mathutils import Vector
@@ -56,22 +57,19 @@ OUTPUT_BLEND = os.environ.get("NAVI_TRUMP_BLEND_OUTPUT", "navi_trump_fast64_exam
 # want to reduce these values again because the original N64 renderer has tight
 # memory and vertex limits.
 HIGH_POLY_PREVIEW = True
-# OoT's original actors are angular and rely on flat vertex normals. Keep the
-# extra geometry available for editing, but shade it like an N64 model.
+# Smooth normals and carefully limited UV spheres give the face a recognizable
+# silhouette without exceeding the actor's N64 vertex budget.
 OOT_STYLE = True
-SMOOTH_ROUND_PARTS = False
+SMOOTH_ROUND_PARTS = True
 ADD_OOT_GLOW = True
-MODEL_SCALE = 1.0
+MODEL_SCALE = float(os.environ.get("NAVI_TRUMP_MODEL_SCALE", "0.52"))
 
-# SkelAnime uses one-based draw limb indices. Fast64 names the corresponding
-# deform bones after the zero-based gFairySkel limb symbols. OoT animates four
-# wing display limbs: 4, 7, 11, and 14.
-WING_BONES = {
-    "L": {"upper": 3, "lower": 6},
-    "R": {"upper": 10, "lower": 13},
-}
+# SkelAnime uses one-based draw limb indices. EnElf_OverrideLimbDraw applies
+# Navi's model scale at draw limb 8, which is Fast64's zero-based limb 7 bone.
+FAIRY_MODEL_BONE = 7
 MAX_EXPORT_VERTICES = 1800
 MAX_EXPORT_MATERIALS = 16
+TRUMP_MATERIAL_COLORS = {}
 
 
 # -----------------------------------------------------------------------------
@@ -158,6 +156,7 @@ def make_material(name, color, alpha=1.0):
 
     material.diffuse_color = (color[0], color[1], color[2], alpha)
     material["Fast64_example_material"] = True
+    TRUMP_MATERIAL_COLORS[name] = (color[0], color[1], color[2], alpha)
 
     # Blender 3.x uses blend_method; newer Blender versions use
     # surface_render_method. The try blocks keep this script portable.
@@ -371,6 +370,30 @@ def add_fallback_armature():
 # -----------------------------------------------------------------------------
 
 
+def configure_fast64_scene(scene, decomp_path):
+    """Fill legacy Fast64 scene properties omitted by some Blender 5.2 installs."""
+    added = []
+    if not hasattr(bpy.types.Scene, "ootDecompPath"):
+        bpy.types.Scene.ootDecompPath = bpy.props.StringProperty(
+            name="OoT Decomp Folder", subtype="DIR_PATH"
+        )
+        added.append("ootDecompPath")
+    if not hasattr(bpy.types.Scene, "saveTextures"):
+        bpy.types.Scene.saveTextures = bpy.props.BoolProperty(
+            name="Save Textures As PNGs", default=False
+        )
+        added.append("saveTextures")
+
+    scene.ootDecompPath = decomp_path
+    scene.saveTextures = False
+    try:
+        scene.fast64.oot.oot_version = "ntsc-1.0"
+    except Exception:
+        pass
+    if added:
+        log("Added Blender 5.2 Fast64 compatibility properties: " + ", ".join(added))
+
+
 def import_navi_with_fast64():
     if not IMPORT_NAVI_FROM_DECOMP or not OOT_DECOMP_PATH:
         return None
@@ -391,13 +414,17 @@ def import_navi_with_fast64():
         pass
 
     try:
-        scene.ootDecompPath = decomp_path
+        configure_fast64_scene(scene, decomp_path)
         settings = scene.fast64.oot.skeletonImportSettings
         settings.mode = "Generic"
         settings.name = "gFairySkel"
         settings.folder = "gameplay_keep"
         settings.actorOverlayName = "ovl_En_Elf"
-        settings.import_animations = True
+        # The generated replacement keeps ZeldaRET's existing gFairyAnim.
+        # Importing every animation referenced by split gameplay_keep sources
+        # makes Fast64 chase unrelated symbols such as gArrow1_Anim and abort
+        # before returning the otherwise valid gFairySkel armature.
+        settings.import_animations = False
         settings.importNormals = True
         settings.removeDoubles = True
         settings.autoDetectActorScale = True
@@ -417,11 +444,20 @@ def import_navi_with_fast64():
 
 def convert_materials_to_f3d():
     """Use Fast64's current BSDF converter when the addon is installed."""
-    if not hasattr(bpy.ops.object, "convert_bsdf"):
-        log("Fast64 material converter not available; materials remain Principled.")
-        return False
-
     scene = bpy.context.scene
+    meshes = [obj for obj in bpy.data.objects if obj.type == "MESH"]
+
+    def converted():
+        materials = {
+            slot.material
+            for obj in meshes
+            for slot in obj.material_slots
+            if slot.material is not None
+        }
+        return bool(materials) and all(getattr(material, "is_f3d", False) for material in materials)
+
+    # Fast64's registered operator is the preferred path on supported Blender
+    # releases.
     try:
         if hasattr(scene, "bsdf_conv_all"):
             scene.bsdf_conv_all = True
@@ -429,17 +465,89 @@ def convert_materials_to_f3d():
             scene.rename_uv_maps = True
 
         deselect_all()
-        meshes = [obj for obj in bpy.data.objects if obj.type == "MESH"]
         for obj in meshes:
             obj.select_set(True)
-        if meshes:
+        if meshes and hasattr(bpy.ops.object, "convert_bsdf"):
             bpy.context.view_layer.objects.active = meshes[0]
             bpy.ops.object.convert_bsdf()
-            log("Converted generated materials to Fast64 F3D materials.")
-            return True
+            if converted():
+                log("Converted generated materials to Fast64 F3D materials.")
+                return True
     except Exception as exc:
-        log("Fast64 material conversion failed: " + repr(exc))
+        log("Fast64 registered material converter failed: " + repr(exc))
+
+    # Blender 5.2 can load Fast64's OoT operators while failing to register the
+    # legacy material-conversion operator. The implementation is still usable,
+    # so locate the enabled package and invoke it directly.
+    roots = []
+    export_class = getattr(bpy.types, "OOT_ExportSkeleton", None)
+    if export_class is not None and ".fast64_internal" in export_class.__module__:
+        roots.append(export_class.__module__.partition(".fast64_internal")[0])
+    roots.extend(
+        name
+        for name in bpy.context.preferences.addons.keys()
+        if "fast64" in name.lower()
+    )
+    loaded_converter_modules = [
+        name for name in sys.modules if name.endswith("fast64_internal.f3d_material_converter")
+    ]
+
+    failures = []
+    module_names = loaded_converter_modules + [
+        root + ".fast64_internal.f3d_material_converter" for root in roots if root
+    ]
+    module_names.append("fast64_internal.f3d_material_converter")
+    for module_name in dict.fromkeys(module_names):
+        try:
+            converter = importlib.import_module(module_name)
+            converter.convertAllBSDFtoF3D(meshes, True)
+            if converted():
+                log("Converted generated materials through the Blender 5.2 Fast64 fallback.")
+                return True
+            failures.append(module_name + " left non-F3D materials")
+        except Exception as exc:
+            failures.append(module_name + ": " + repr(exc))
+
+    if failures:
+        log("Fast64 direct material conversion failed: " + " | ".join(failures))
+    else:
+        log("Fast64 material converter module could not be located.")
     return False
+
+
+def apply_trump_colors_to_f3d(meshes):
+    """Make Fast64 emit the generated colors instead of inheriting white actor lights."""
+    updated = set()
+    for obj in meshes:
+        for slot in obj.material_slots:
+            material = slot.material
+            if material is None or material in updated or not getattr(material, "is_f3d", False):
+                continue
+            base_name = material.name.removesuffix("_f3d")
+            color = TRUMP_MATERIAL_COLORS.get(base_name)
+            if color is None:
+                continue
+            updated.add(material)
+            with bpy.context.temp_override(material=material):
+                f3d_mat = material.f3d_mat
+                # Fast64's BSDF converter copies the color to this field but
+                # its Shaded Solid preset leaves set_lights off. Enable the
+                # generated light so each material exports its own hue.
+                f3d_mat.use_default_lighting = True
+                f3d_mat.set_ambient_from_light = True
+                f3d_mat.default_light_color = color
+                f3d_mat.set_lights = True
+                # Preserve translucent wing alpha in the otherwise shaded
+                # solid combiner.
+                f3d_mat.prim_color = (1.0, 1.0, 1.0, color[3])
+                f3d_mat.combiner1.D_alpha = "PRIMITIVE"
+    if len(updated) != len(TRUMP_MATERIAL_COLORS):
+        raise RuntimeError(
+            "Applied explicit F3D colors to {0} of {1} Trump materials.".format(
+                len(updated), len(TRUMP_MATERIAL_COLORS)
+            )
+        )
+    log("Applied explicit colors to {0} Fast64 materials.".format(len(updated)))
 
 
 def export_with_fast64(armature):
@@ -481,18 +589,18 @@ def export_with_fast64(armature):
 
 
 def build_character():
-    # Match the reference's recognizable features while preserving an OoT
-    # low-poly treatment: swept blond hair, narrowed eyes, heavy brows, a
-    # long nose, pursed frown, navy suit, white shirt, and red tie.
+    # The likeness is carried by silhouette and proportions rather than dense
+    # geometry: broad forehead, tapered jaw, swept blond hair, narrowed eyes,
+    # pronounced brows, rounded nose, pursed mouth, navy suit, and red tie.
     if OOT_STYLE:
-        skin_color = (0.66, 0.29, 0.13)
-        hair_color = (0.92, 0.52, 0.10)
-        hair_highlight_color = (1.00, 0.75, 0.34)
-        hair_shadow_color = (0.48, 0.15, 0.015)
-        suit_color = (0.025, 0.035, 0.085)
-        shirt_color = (0.78, 0.78, 0.70)
-        tie_color = (0.55, 0.018, 0.025)
-        wing_color = (0.30, 0.68, 0.92)
+        skin_color = (0.82, 0.46, 0.27)
+        hair_color = (0.91, 0.68, 0.29)
+        hair_highlight_color = (1.00, 0.86, 0.52)
+        hair_shadow_color = (0.55, 0.34, 0.10)
+        suit_color = (0.025, 0.055, 0.14)
+        shirt_color = (0.92, 0.91, 0.84)
+        tie_color = (0.68, 0.025, 0.035)
+        wing_color = (0.48, 0.78, 1.00)
     else:
         skin_color = (0.86, 0.52, 0.34)
         hair_color = (0.95, 0.55, 0.08)
@@ -510,70 +618,98 @@ def build_character():
     suit = make_material("TrumpFairy_Suit", suit_color)
     shirt = make_material("TrumpFairy_Shirt", shirt_color)
     tie = make_material("TrumpFairy_Tie", tie_color)
-    eye_white = make_material("TrumpFairy_EyeWhite", (0.72, 0.70, 0.62))
+    eye_white = make_material("TrumpFairy_EyeWhite", (0.88, 0.86, 0.78))
     eye_dark = make_material("TrumpFairy_EyeDark", (0.025, 0.012, 0.01))
     mouth = make_material("TrumpFairy_Mouth", (0.17, 0.012, 0.012))
-    lip = make_material("TrumpFairy_Lip", (0.48, 0.055, 0.045))
+    lip = make_material("TrumpFairy_Lip", (0.58, 0.16, 0.13))
     shoe = make_material("TrumpFairy_Shoes", (0.02, 0.015, 0.012))
     wing = make_material("TrumpFairy_Wings", wing_color, alpha=0.62 if OOT_STYLE else 1.0)
 
-    round_subdivisions = 2 if OOT_STYLE else (3 if HIGH_POLY_PREVIEW else 2)
-    detail_subdivisions = 1 if OOT_STYLE else (2 if HIGH_POLY_PREVIEW else 1)
     parts = []
 
-    # Navy's body becomes a compact suit torso with the original fairy flight.
-    parts.append(add_ico("TrumpFairy_SuitBody", (0.0, 0.0, 1.42), (0.80, 0.50, 0.92), suit, round_subdivisions))
-    parts.append(add_ico("TrumpFairy_ShirtFront", (0.0, -0.47, 1.72), (0.25, 0.08, 0.50), shirt, detail_subdivisions))
+    # Compact formal silhouette. Separate shoulders keep the torso from reading
+    # as one large faceted ball while retaining the fairy's small proportions.
+    parts.append(add_uv_sphere("TrumpFairy_SuitBody", (0.0, 0.02, 1.38), (0.69, 0.43, 0.78), suit, 12, 7, True))
+    parts.append(add_uv_sphere("TrumpFairy_Shoulder_L", (-0.57, 0.01, 1.72), (0.28, 0.38, 0.30), suit, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Shoulder_R", (0.57, 0.01, 1.72), (0.28, 0.38, 0.30), suit, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_ShirtFront", (0.0, -0.42, 1.70), (0.22, 0.055, 0.43), shirt, 8, 5, True))
     parts.append(add_lapel("TrumpFairy_Lapel_L", -1, suit))
     parts.append(add_lapel("TrumpFairy_Lapel_R", 1, suit))
-    parts.append(add_cone("TrumpFairy_Tie", (0.0, -0.59, 1.57), 0.13, 0.035, 0.72, tie, (0.0, 0.0, 0.0)))
-    parts.append(add_ico("TrumpFairy_TieKnot", (0.0, -0.62, 1.98), (0.14, 0.065, 0.13), tie, detail_subdivisions))
-    parts.append(add_cylinder_between("TrumpFairy_Arm_L", (-0.58, 0.0, 1.86), (-0.96, -0.02, 1.18), 0.19, suit))
-    parts.append(add_cylinder_between("TrumpFairy_Arm_R", (0.58, 0.0, 1.86), (0.96, -0.02, 1.18), 0.19, suit))
-    parts.append(add_ico("TrumpFairy_Hand_L", (-0.96, -0.02, 1.08), (0.20, 0.18, 0.20), skin, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Hand_R", (0.96, -0.02, 1.08), (0.20, 0.18, 0.20), skin, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Shoe_L", (-0.36, -0.12, 0.38), (0.28, 0.38, 0.14), shoe, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Shoe_R", (0.36, -0.12, 0.38), (0.28, 0.38, 0.14), shoe, detail_subdivisions))
+    parts.append(add_cone("TrumpFairy_Tie", (0.0, -0.51, 1.48), 0.11, 0.035, 0.61, tie))
+    parts.append(add_uv_sphere("TrumpFairy_TieKnot", (0.0, -0.54, 1.85), (0.12, 0.055, 0.11), tie, 8, 5, True))
+    parts.append(add_cylinder_between("TrumpFairy_Arm_L", (-0.57, 0.0, 1.70), (-0.82, -0.01, 1.13), 0.15, suit))
+    parts.append(add_cylinder_between("TrumpFairy_Arm_R", (0.57, 0.0, 1.70), (0.82, -0.01, 1.13), 0.15, suit))
+    parts.append(add_uv_sphere("TrumpFairy_Hand_L", (-0.82, -0.03, 1.05), (0.16, 0.14, 0.17), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Hand_R", (0.82, -0.03, 1.05), (0.16, 0.14, 0.17), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Shoe_L", (-0.29, -0.13, 0.43), (0.23, 0.31, 0.12), shoe, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Shoe_R", (0.29, -0.13, 0.43), (0.23, 0.31, 0.12), shoe, 8, 5, True))
 
-    # Broad, low-poly head with a heavier jaw than the previous fairy face.
-    parts.append(add_ico("TrumpFairy_Head", (0.0, 0.0, 2.70), (0.76, 0.60, 0.73), skin, round_subdivisions))
-    parts.append(add_ico("TrumpFairy_Jaw", (0.0, -0.12, 2.43), (0.50, 0.38, 0.31), skin, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Ear_L", (-0.70, 0.0, 2.70), (0.15, 0.18, 0.20), skin, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Ear_R", (0.70, 0.0, 2.70), (0.15, 0.18, 0.20), skin, detail_subdivisions))
+    # A smooth oval cranium plus smaller overlapping cheek/jaw forms avoids the
+    # old block silhouette. Overlap is deliberate and survives rigid export.
+    parts.append(add_uv_sphere("TrumpFairy_Neck", (0.0, 0.0, 2.05), (0.27, 0.25, 0.31), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Head", (0.0, 0.0, 2.67), (0.67, 0.53, 0.72), skin, 16, 9, True))
+    parts.append(add_uv_sphere("TrumpFairy_Jaw", (0.0, -0.07, 2.39), (0.46, 0.38, 0.34), skin, 12, 7, True))
+    parts.append(add_uv_sphere("TrumpFairy_Cheek_L", (-0.31, -0.31, 2.55), (0.28, 0.23, 0.25), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Cheek_R", (0.31, -0.31, 2.55), (0.28, 0.23, 0.25), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Chin", (0.0, -0.30, 2.27), (0.25, 0.18, 0.17), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Ear_L", (-0.65, 0.0, 2.66), (0.11, 0.13, 0.18), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Ear_R", (0.65, 0.0, 2.66), (0.11, 0.13, 0.18), skin, 8, 5, True))
 
-    # High forehead, comb-over, and layered blond hair.
-    parts.append(add_ico("TrumpFairy_HairCap", (0.02, 0.05, 3.16), (0.80, 0.56, 0.30), hair, round_subdivisions))
-    parts.append(add_ico("TrumpFairy_HairSweep", (0.10, -0.16, 3.28), (0.68, 0.30, 0.19), hair_highlight, detail_subdivisions))
+    # The layered comb-over is asymmetric and projects forward over the brow.
+    # That silhouette remains readable when Navi is only a few pixels tall.
+    parts.append(add_uv_sphere("TrumpFairy_HairCap", (0.0, 0.06, 3.15), (0.69, 0.49, 0.28), hair, 14, 8, True))
     for index, location, scale, material_choice in [
-        (0, (-0.57, -0.04, 3.16), (0.34, 0.30, 0.16), hair_shadow),
-        (1, (-0.35, -0.25, 3.27), (0.36, 0.22, 0.15), hair),
-        (2, (-0.02, -0.35, 3.33), (0.38, 0.18, 0.13), hair_highlight),
-        (3, (0.32, -0.28, 3.31), (0.38, 0.20, 0.14), hair),
-        (4, (0.58, -0.08, 3.19), (0.32, 0.25, 0.16), hair_shadow),
+        (0, (-0.39, -0.18, 3.22), (0.36, 0.22, 0.15), hair_shadow),
+        (1, (-0.07, -0.29, 3.27), (0.42, 0.18, 0.14), hair),
+        (2, (0.31, -0.25, 3.24), (0.42, 0.19, 0.14), hair_highlight),
+        (3, (0.56, -0.08, 3.13), (0.24, 0.23, 0.16), hair),
     ]:
-        parts.append(add_ico("TrumpFairy_HairLock_{0}".format(index), location, scale, material_choice, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Sideburn_L", (-0.62, -0.18, 2.91), (0.12, 0.12, 0.24), hair_shadow, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Sideburn_R", (0.62, -0.18, 2.91), (0.12, 0.12, 0.24), hair_shadow, detail_subdivisions))
+        parts.append(add_uv_sphere("TrumpFairy_HairLock_{0}".format(index), location, scale, material_choice, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Sideburn_L", (-0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Sideburn_R", (0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 8, 5, True))
 
-    # Reference-like narrowed eyes, furrowed brows, strong nose, and frown.
-    parts.append(add_ico("TrumpFairy_Eye_L", (-0.26, -0.585, 2.79), (0.13, 0.045, 0.075), eye_white, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Eye_R", (0.26, -0.585, 2.79), (0.13, 0.045, 0.075), eye_white, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Pupil_L", (-0.25, -0.635, 2.79), (0.040, 0.020, 0.050), eye_dark, detail_subdivisions))
-    parts.append(add_ico("TrumpFairy_Pupil_R", (0.25, -0.635, 2.79), (0.040, 0.020, 0.050), eye_dark, detail_subdivisions))
-    parts.append(add_cylinder_between("TrumpFairy_Brow_L", (-0.42, -0.61, 2.98), (-0.08, -0.65, 2.91), 0.055, hair_shadow))
-    parts.append(add_cylinder_between("TrumpFairy_Brow_R", (0.08, -0.65, 2.91), (0.42, -0.61, 2.98), 0.055, hair_shadow))
-    parts.append(add_ico("TrumpFairy_NoseBridge", (0.0, -0.49, 2.73), (0.15, 0.18, 0.24), skin, detail_subdivisions))
-    parts.append(add_cone("TrumpFairy_Nose", (0.0, -0.69, 2.60), 0.18, 0.03, 0.42, skin, (math.pi / 2.0, 0.0, 0.0)))
-    parts.append(add_cylinder_between("TrumpFairy_Frown_L", (-0.20, -0.63, 2.40), (0.0, -0.66, 2.35), 0.035, mouth))
-    parts.append(add_cylinder_between("TrumpFairy_Frown_R", (0.0, -0.66, 2.35), (0.20, -0.63, 2.40), 0.035, mouth))
-    parts.append(add_ico("TrumpFairy_LowerLip", (0.0, -0.65, 2.31), (0.16, 0.025, 0.045), lip, detail_subdivisions))
+    # Narrowed eyes and angled brows frame a rounded bridge/tip. The mouth is
+    # built from two shallow lip forms instead of a sharp V-shaped frown.
+    parts.append(add_uv_sphere("TrumpFairy_Eye_L", (-0.24, -0.515, 2.76), (0.13, 0.035, 0.060), eye_white, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Eye_R", (0.24, -0.515, 2.76), (0.13, 0.035, 0.060), eye_white, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Pupil_L", (-0.23, -0.552, 2.76), (0.035, 0.018, 0.042), eye_dark, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_Pupil_R", (0.23, -0.552, 2.76), (0.035, 0.018, 0.042), eye_dark, 8, 5, True))
+    parts.append(add_cylinder_between("TrumpFairy_Brow_L", (-0.39, -0.54, 2.93), (-0.07, -0.58, 2.87), 0.042, hair_shadow))
+    parts.append(add_cylinder_between("TrumpFairy_Brow_R", (0.07, -0.58, 2.87), (0.39, -0.54, 2.93), 0.042, hair_shadow))
+    parts.append(add_uv_sphere("TrumpFairy_NoseBridge", (0.0, -0.48, 2.64), (0.115, 0.13, 0.25), skin, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_NoseTip", (0.0, -0.61, 2.52), (0.17, 0.13, 0.13), skin, 8, 5, True))
+    parts.append(add_ico("TrumpFairy_Nostril_L", (-0.085, -0.715, 2.50), (0.027, 0.012, 0.018), mouth, 1, True))
+    parts.append(add_ico("TrumpFairy_Nostril_R", (0.085, -0.715, 2.50), (0.027, 0.012, 0.018), mouth, 1, True))
+    parts.append(add_uv_sphere("TrumpFairy_UpperLip", (0.0, -0.625, 2.34), (0.17, 0.035, 0.045), lip, 8, 5, True))
+    parts.append(add_uv_sphere("TrumpFairy_LowerLip", (0.0, -0.620, 2.285), (0.15, 0.030, 0.040), lip, 8, 5, True))
+    parts.append(add_cylinder_between("TrumpFairy_MouthLine", (-0.16, -0.661, 2.325), (0.16, -0.661, 2.325), 0.018, mouth))
 
     # Navi wings stay behind the suit; this is still a fairy replacement.
     parts.append(add_wing("TrumpFairy_Wing_L", -1, wing))
     parts.append(add_wing("TrumpFairy_Wing_R", 1, wing))
 
+    # Navi's display limb is centered on the fairy, while these modeling
+    # primitives were authored upward from the shoes. Center their real
+    # world-space vertical bounds on the limb so neither head nor feet are
+    # pushed off screen as the fairy flies near the camera.
+    bpy.context.view_layer.update()
+    vertical_bounds = [
+        (obj.matrix_world @ Vector(corner)).z
+        for obj in parts
+        for corner in obj.bound_box
+    ]
+    vertical_center = (min(vertical_bounds) + max(vertical_bounds)) * 0.5
     for obj in parts:
-        obj.scale = obj.scale * MODEL_SCALE
+        obj.location.z -= vertical_center
+        # Scale both the primitive and its layout position. Scaling only
+        # obj.scale made the old body smaller while leaving its parts spread
+        # over the original oversized height.
+        obj.location *= MODEL_SCALE
+        obj.scale *= MODEL_SCALE
+    log(
+        "Centered refined model on Navi pivot and applied {0:.2f} scale "
+        "(vertical offset {1:.3f}).".format(MODEL_SCALE, vertical_center)
+    )
 
     return parts
 
@@ -586,8 +722,8 @@ def add_oot_glow(armature):
     glow_material = make_material("TrumpFairy_OoTGlow", (0.55, 0.82, 1.0), alpha=0.20)
     glow = add_ico(
         "TrumpFairy_OoTGlow_PREVIEW_ONLY",
-        (0.0, 0.30, 1.75),
-        (1.35, 0.08, 1.35),
+        (0.0, 0.18, 0.0),
+        (0.98, 0.05, 0.98),
         glow_material,
         subdivisions=2,
         smooth=False,
@@ -602,33 +738,6 @@ def join_and_bind(parts, armature):
     if not parts:
         raise RuntimeError("No generated mesh parts were created.")
 
-    root_name = get_root_bone(armature).name
-    wing_names = {
-        side: {
-            position: get_limb_bone(armature, index).name
-            for position, index in positions.items()
-        }
-        for side, positions in WING_BONES.items()
-    }
-
-    # Bind body geometry to the fairy root. Split each generated wing between
-    # the real upper/lower wing limbs so the original gFairyAnim motion is
-    # retained after Fast64 export.
-    for obj in parts:
-        if obj.name.startswith("TrumpFairy_Wing_"):
-            side = "L" if obj.name.endswith("_L") else "R"
-            upper = obj.vertex_groups.new(name=wing_names[side]["upper"])
-            lower = obj.vertex_groups.new(name=wing_names[side]["lower"])
-            upper_indices = [vertex.index for vertex in obj.data.vertices if vertex.co.z >= 2.0]
-            lower_indices = [vertex.index for vertex in obj.data.vertices if vertex.co.z < 2.0]
-            if upper_indices:
-                upper.add(upper_indices, 1.0, "REPLACE")
-            if lower_indices:
-                lower.add(lower_indices, 1.0, "REPLACE")
-        else:
-            group = obj.vertex_groups.new(name=root_name)
-            group.add([vertex.index for vertex in obj.data.vertices], 1.0, "REPLACE")
-
     deselect_all()
     for obj in parts:
         obj.select_set(True)
@@ -636,6 +745,16 @@ def join_and_bind(parts, armature):
     bpy.ops.object.join()
     mesh_obj = bpy.context.object
     mesh_obj.name = "NaviTrump_F3D_Mesh"
+
+    # En_Elf uses the rigid skeleton initializer and draw routine. Make that
+    # invariant explicit by giving the entire joined mesh exactly one bone
+    # group. Limb 7 receives Navi's pulsing model scale at draw limb 8.
+    model_bone_name = get_limb_bone(armature, FAIRY_MODEL_BONE).name
+    armature.data.bones[model_bone_name].use_deform = True
+    for group in list(mesh_obj.vertex_groups):
+        mesh_obj.vertex_groups.remove(group)
+    model_group = mesh_obj.vertex_groups.new(name=model_bone_name)
+    model_group.add([vertex.index for vertex in mesh_obj.data.vertices], 1.0, "REPLACE")
 
     # Preserve the generated mesh's world position when making it an armature
     # child, even when Fast64 imported the armature with a non-unit scale.
@@ -646,7 +765,7 @@ def join_and_bind(parts, armature):
     modifier = mesh_obj.modifiers.new(name="NaviFairyArmature", type="ARMATURE")
     modifier.object = armature
 
-    mesh_obj["Fast64_example_note"] = "Body uses the fairy root; wings use limbs 4, 7, 11, and 14."
+    mesh_obj["Fast64_example_note"] = "Rigid replacement uses gFairySkel draw limb 8."
 
     if EXPORT_WITH_FAST64:
         vertex_count = len(mesh_obj.data.vertices)
@@ -678,10 +797,10 @@ def look_at(obj, target):
 
 
 def add_preview_camera_and_light():
-    bpy.ops.object.camera_add(location=(4.0, -6.4, 3.6))
+    bpy.ops.object.camera_add(location=(2.2, -3.6, 1.6))
     camera = bpy.context.object
     camera.name = "PreviewCamera"
-    look_at(camera, (0.0, 0.0, 1.7))
+    look_at(camera, (0.0, 0.0, 0.0))
     bpy.context.scene.camera = camera
 
     bpy.ops.object.light_add(type="AREA", location=(3.5, -4.0, 6.0))
@@ -690,14 +809,14 @@ def add_preview_camera_and_light():
     key.data.energy = 700.0
     key.data.shape = "DISK"
     key.data.size = 5.0
-    look_at(key, (0.0, 0.0, 1.6))
+    look_at(key, (0.0, 0.0, 0.0))
 
     bpy.ops.object.light_add(type="AREA", location=(-4.0, 1.0, 3.0))
     fill = bpy.context.object
     fill.name = "PreviewFill"
     fill.data.energy = 300.0
     fill.data.size = 4.0
-    look_at(fill, (0.0, 0.0, 1.5))
+    look_at(fill, (0.0, 0.0, 0.0))
 
 
 def set_preview_settings():
@@ -755,11 +874,15 @@ def main():
 
     # Fast64 converts all visible mesh materials at once when this operator is
     # available. If Fast64 is absent, the blend still opens normally.
-    convert_materials_to_f3d()
+    materials_converted = convert_materials_to_f3d()
+    if materials_converted:
+        apply_trump_colors_to_f3d([mesh_obj])
 
     if EXPORT_WITH_FAST64:
         if imported_armature is None:
             raise RuntimeError("Fast64 could not import the real gFairySkel; export aborted.")
+        if not materials_converted:
+            raise RuntimeError("Fast64 could not convert the generated materials to F3D.")
         if not export_with_fast64(armature):
             raise RuntimeError("Fast64 could not export the Trump Navi model.")
 

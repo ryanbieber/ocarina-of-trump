@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import math
 import re
+import sys
 import wave
+from array import array
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -12,6 +15,34 @@ from .project import ProjectConfig, ROOT
 
 MESSAGE_ID = re.compile(r"^0x[0-9A-Fa-f]{1,4}$")
 VOICE_NAME = re.compile(r"^trump_[0-9a-f]{4}_[0-9]{2}\.wav$")
+VOICE_ACTIVE_TARGET_DBFS = -20.0
+VOICE_ACTIVE_TOLERANCE_DB = 0.5
+VOICE_PEAK_CEILING_DBFS = -3.0
+
+
+def _voice_levels(frames: bytes, sample_rate: int) -> tuple[float, float]:
+    samples = array("h")
+    samples.frombytes(frames)
+    if sys.byteorder != "little":
+        samples.byteswap()
+    if not samples:
+        return -120.0, -120.0
+    gate = 10 ** (-45.0 / 20.0)
+    squares = 0
+    count = 0
+    window = max(1, sample_rate // 50)
+    for start in range(0, len(samples), window):
+        frame = samples[start : start + window]
+        frame_squares = sum(value * value for value in frame)
+        frame_rms = math.sqrt(frame_squares / len(frame)) / 32768.0
+        if frame_rms >= gate:
+            squares += frame_squares
+            count += len(frame)
+    active = math.sqrt(squares / count) / 32768.0 if count else 0.0
+    peak = max(abs(value) for value in samples) / 32768.0
+    active_db = 20.0 * math.log10(active) if active else -120.0
+    peak_db = 20.0 * math.log10(peak) if peak else -120.0
+    return active_db, peak_db
 
 
 @dataclass(frozen=True)
@@ -123,6 +154,18 @@ def validate_manifest(
                             f"found {stream.getframerate()} Hz"
                         )
                     duration = stream.getnframes() / max(1, stream.getframerate())
+                    frames = stream.readframes(stream.getnframes())
+                    active_db, peak_db = _voice_levels(frames, stream.getframerate())
+                    if abs(active_db - VOICE_ACTIVE_TARGET_DBFS) > VOICE_ACTIVE_TOLERANCE_DB:
+                        errors.append(
+                            f"{voice}: active speech is {active_db:.2f} dBFS; "
+                            f"normalize to {VOICE_ACTIVE_TARGET_DBFS:.1f} dBFS"
+                        )
+                    if peak_db > VOICE_PEAK_CEILING_DBFS + 0.05:
+                        errors.append(
+                            f"{voice}: peak is {peak_db:.2f} dBFS; "
+                            f"ceiling is {VOICE_PEAK_CEILING_DBFS:.1f} dBFS"
+                        )
                     # Nintendo 64 VADPCM frames encode 16 samples in 9 bytes.
                     estimated_vadpcm_bytes += ((stream.getnframes() + 15) // 16) * 9
                     estimated_vadpcm_bytes += 256  # conservative loop/book/table overhead

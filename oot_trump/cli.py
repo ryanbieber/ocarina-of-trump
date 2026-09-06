@@ -19,6 +19,7 @@ from .project import (
     find_baserom,
     md5,
     patch_armips_pthread,
+    patch_default_english_language,
     run,
     stage_baserom,
 )
@@ -70,22 +71,10 @@ def path_for_blender(path: Path, blender: str) -> str:
 def validate_model_tools() -> str:
     """Start Blender and prove that the required Fast64 OoT operators exist."""
     blender = find_blender()
-    expression = "; ".join(
-        (
-            "import bpy",
-            "version=bpy.app.version",
-            "assert (4, 0, 0) <= version < (6, 0, 0), "
-            "f'Ocarina of Trump requires Blender 4.x or 5.x; found {bpy.app.version_string}'",
-            "assert hasattr(bpy.ops.object, 'oot_import_skeleton'), "
-            "'Fast64 is not enabled or its OoT skeleton importer is unavailable'",
-            "assert hasattr(bpy.ops.object, 'oot_export_skeleton'), "
-            "'Fast64 is not enabled or its OoT skeleton exporter is unavailable'",
-            "print('OOT_TRUMP_MODEL_TOOLS_OK=' + bpy.app.version_string)",
-        )
-    )
+    preflight = path_for_blender(ROOT / "scripts" / "blender_fast64_preflight.py", blender)
     try:
         result = subprocess.run(
-            [blender, "--background", "--python-expr", expression],
+            [blender, "--background", "--python-exit-code", "1", "--python", preflight],
             cwd=ROOT,
             text=True,
             stdout=subprocess.PIPE,
@@ -123,6 +112,7 @@ def bootstrap(repo: Path, config: ProjectConfig, setup: bool) -> None:
     run(["git", "fetch", "origin", config.oot_revision], cwd=repo)
     run(["git", "checkout", "--detach", config.oot_revision], cwd=repo)
     patch_armips_pthread(repo)
+    patch_default_english_language(repo)
     if setup:
         find_baserom(repo, config)
         run(
@@ -169,6 +159,19 @@ def build(repo: Path) -> None:
     errors = validate(allow_missing_audio=False)
     if errors:
         raise ProjectError("content validation failed:\n- " + "\n- ".join(errors))
+    region_marker = repo / "build" / config.version / ".oot-trump-region"
+    try:
+        cached_region = region_marker.read_text(encoding="utf-8").strip()
+    except OSError:
+        cached_region = ""
+    if cached_region != "US":
+        print("clearing cached ZeldaRET objects so REGION=US is applied")
+        run(
+            ["make", "clean", f"VERSION={config.version}", "REGION=US"],
+            cwd=repo,
+            clean_toolchain=True,
+        )
+
     apply(repo, check=False)
     count = install_audio_backend(repo, load_manifest(), config, require_all=True)
     print(f"installed {count} voice clips into ZeldaRET")
@@ -177,6 +180,8 @@ def build(repo: Path) -> None:
         cwd=repo,
         clean_toolchain=True,
     )
+    region_marker.parent.mkdir(parents=True, exist_ok=True)
+    region_marker.write_text("US\n", encoding="utf-8")
 
 
 def validate_exported_navi_model(repo: Path) -> None:
@@ -185,6 +190,10 @@ def validate_exported_navi_model(repo: Path) -> None:
         data = source.read_text(encoding="utf-8")
     except OSError as exc:
         raise ProjectError(f"Fast64 did not produce the expected model source: {source}") from exc
+    if "FlexSkeletonHeader gFairySkel" in data:
+        raise ProjectError(
+            "Fast64 exported Trump Navi as a flex skeleton; En_Elf requires rigid vertex binding"
+        )
     missing = [marker for marker in ("gFairySkel", "TrumpFairy") if marker not in data]
     if missing:
         raise ProjectError(
@@ -194,31 +203,142 @@ def validate_exported_navi_model(repo: Path) -> None:
     print("validated Fast64 Trump Navi source replacement")
 
 
+def _between(data: str, start: str, end: str, label: str) -> str:
+    start_index = data.find(start)
+    end_index = data.find(end, start_index + len(start))
+    if start_index < 0 or end_index < 0:
+        raise ProjectError(f"Could not preserve vanilla {label} around the Fast64 export")
+    return data[start_index:end_index].rstrip() + "\n"
+
+
+def merge_fairy_shared_assets(
+    generated_header: str,
+    generated_source: str,
+    vanilla_header: str,
+    vanilla_source: str,
+) -> tuple[str, str]:
+    """Put gameplay_keep's non-fairy glow assets back after Fast64 overwrites the file."""
+    header_assets = _between(
+        vanilla_header,
+        "extern Vtx gGlowCircleVtx[];",
+        "extern StandardLimb gFairySkelLimb_0;",
+        "fairy glow declarations",
+    )
+    source_assets = _between(
+        vanilla_source,
+        "Vtx gGlowCircleVtx[] = {",
+        "StandardLimb gFairySkelLimb_0 = {",
+        "fairy glow definitions",
+    )
+    if "gGlowCircleTextureLoadDL" not in generated_header:
+        tex_len_include = '#include "tex_len.h"\n'
+        if tex_len_include not in generated_header:
+            first_line_end = generated_header.find("\n") + 1
+            generated_header = (
+                generated_header[:first_line_end]
+                + tex_len_include
+                + generated_header[first_line_end:]
+            )
+        closing_guard = generated_header.rfind("#endif")
+        if closing_guard < 0:
+            raise ProjectError("Fast64 fairy_skel.h has no closing include guard")
+        generated_header = (
+            generated_header[:closing_guard].rstrip()
+            + "\n\n"
+            + header_assets
+            + "\n"
+            + generated_header[closing_guard:]
+        )
+    if "gGlowCircleTextureLoadDL" not in generated_source:
+        required_includes = ('#include "circle_glow_textures.h"\n', '#include "gfx.h"\n')
+        first_line_end = generated_source.find("\n") + 1
+        missing_includes = "".join(
+            include for include in required_includes if include not in generated_source
+        )
+        generated_source = (
+            generated_source[:first_line_end]
+            + missing_includes
+            + generated_source[first_line_end:]
+        )
+        generated_source = generated_source.rstrip() + "\n\n" + source_assets
+    return generated_header, generated_source
+
+
+def read_pinned_oot_file(repo: Path, relative: Path) -> str:
+    try:
+        return subprocess.run(
+            ["git", "show", f"HEAD:{relative.as_posix()}"],
+            cwd=repo,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ProjectError(f"Could not load pinned ZeldaRET file: {relative}") from exc
+
+
+def restore_vanilla_fairy_skeleton(repo: Path) -> None:
+    """Ensure Fast64 imports the pinned skeleton rather than a prior generated retry."""
+    relative_base = Path("assets/objects/gameplay_keep/fairy_skel")
+    for suffix in (".h", ".c"):
+        relative = relative_base.with_suffix(suffix)
+        destination = repo / relative
+        destination.write_text(read_pinned_oot_file(repo, relative), encoding="utf-8")
+    print("restored vanilla gFairySkel as the Fast64 import source")
+
+
+def preserve_fairy_shared_assets(repo: Path) -> None:
+    """Recover assets colocated with gFairySkel that Fast64 does not know about."""
+    relative_base = Path("assets/objects/gameplay_keep/fairy_skel")
+    header_path = repo / relative_base.with_suffix(".h")
+    source_path = repo / relative_base.with_suffix(".c")
+    try:
+        vanilla_header = read_pinned_oot_file(repo, relative_base.with_suffix(".h"))
+        vanilla_source = read_pinned_oot_file(repo, relative_base.with_suffix(".c"))
+        generated_header = header_path.read_text(encoding="utf-8")
+        generated_source = source_path.read_text(encoding="utf-8")
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ProjectError("Could not load fairy_skel assets for the Fast64 compatibility merge") from exc
+
+    merged_header, merged_source = merge_fairy_shared_assets(
+        generated_header, generated_source, vanilla_header, vanilla_source
+    )
+    header_path.write_text(merged_header, encoding="utf-8")
+    source_path.write_text(merged_source, encoding="utf-8")
+    print("preserved gameplay_keep glow assets alongside the Trump Fairy export")
+
+
 def export_navi_model(repo: Path, blender: str | None = None) -> None:
     if blender is None:
         blender = validate_model_tools()
-    environment = os.environ.copy()
-    environment.update(
-        {
-            "OOT_DECOMP_PATH": path_for_blender(repo, blender),
-            "NAVI_TRUMP_IMPORT": "1",
-            "NAVI_TRUMP_EXPORT": "1",
-            "NAVI_TRUMP_BLEND_OUTPUT": path_for_blender(
-                ROOT / ".work" / "navi_trump_export.blend", blender
-            ),
-        }
+    restore_vanilla_fairy_skeleton(repo)
+    settings = {
+        "OOT_DECOMP_PATH": path_for_blender(repo, blender),
+        "NAVI_TRUMP_IMPORT": "1",
+        "NAVI_TRUMP_EXPORT": "1",
+        "NAVI_TRUMP_BLEND_OUTPUT": path_for_blender(
+            ROOT / ".work" / "navi_trump_export.blend", blender
+        ),
+        # Explicit injection also makes this knob work when a Windows Blender
+        # process is launched from WSL, where Linux environment inheritance is
+        # otherwise inconsistent.
+        "NAVI_TRUMP_MODEL_SCALE": os.environ.get("NAVI_TRUMP_MODEL_SCALE", "0.52"),
+    }
+    script = path_for_blender(ROOT / "navi_trump_fast64_example.py", blender)
+    # Linux environment variables are not automatically inherited by a Win32
+    # process launched through WSL. Inject the settings in Blender's Python so
+    # this behaves identically with Linux Blender and Windows blender.exe.
+    expression = (
+        f"import os, runpy; os.environ.update({settings!r}); "
+        f"runpy.run_path({script!r}, run_name='__main__')"
     )
     subprocess.run(
-        [
-            blender,
-            "--background",
-            "--python",
-            path_for_blender(ROOT / "navi_trump_fast64_example.py", blender),
-        ],
+        [blender, "--background", "--python-exit-code", "1", "--python-expr", expression],
         cwd=ROOT,
-        env=environment,
         check=True,
     )
+    preserve_fairy_shared_assets(repo)
     validate_exported_navi_model(repo)
 
 
