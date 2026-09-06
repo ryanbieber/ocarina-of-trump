@@ -373,6 +373,30 @@ def add_fallback_armature():
 # -----------------------------------------------------------------------------
 
 
+def configure_fast64_scene(scene, decomp_path):
+    """Fill legacy Fast64 scene properties omitted by some Blender 5.2 installs."""
+    added = []
+    if not hasattr(bpy.types.Scene, "ootDecompPath"):
+        bpy.types.Scene.ootDecompPath = bpy.props.StringProperty(
+            name="OoT Decomp Folder", subtype="DIR_PATH"
+        )
+        added.append("ootDecompPath")
+    if not hasattr(bpy.types.Scene, "saveTextures"):
+        bpy.types.Scene.saveTextures = bpy.props.BoolProperty(
+            name="Save Textures As PNGs", default=False
+        )
+        added.append("saveTextures")
+
+    scene.ootDecompPath = decomp_path
+    scene.saveTextures = False
+    try:
+        scene.fast64.oot.oot_version = "ntsc-1.0"
+    except Exception:
+        pass
+    if added:
+        log("Added Blender 5.2 Fast64 compatibility properties: " + ", ".join(added))
+
+
 def import_navi_with_fast64():
     if not IMPORT_NAVI_FROM_DECOMP or not OOT_DECOMP_PATH:
         return None
@@ -393,7 +417,7 @@ def import_navi_with_fast64():
         pass
 
     try:
-        scene.ootDecompPath = decomp_path
+        configure_fast64_scene(scene, decomp_path)
         settings = scene.fast64.oot.skeletonImportSettings
         settings.mode = "Generic"
         settings.name = "gFairySkel"
@@ -463,15 +487,16 @@ def convert_materials_to_f3d():
         for name in bpy.context.preferences.addons.keys()
         if "fast64" in name.lower()
     )
-    roots.extend(
-        name.rpartition(".fast64_internal.f3d_material_converter")[0]
-        for name in sys.modules
-        if name.endswith(".fast64_internal.f3d_material_converter")
-    )
+    loaded_converter_modules = [
+        name for name in sys.modules if name.endswith("fast64_internal.f3d_material_converter")
+    ]
 
     failures = []
-    for root in dict.fromkeys(root for root in roots if root):
-        module_name = root + ".fast64_internal.f3d_material_converter"
+    module_names = loaded_converter_modules + [
+        root + ".fast64_internal.f3d_material_converter" for root in roots if root
+    ]
+    module_names.append("fast64_internal.f3d_material_converter")
+    for module_name in dict.fromkeys(module_names):
         try:
             converter = importlib.import_module(module_name)
             converter.convertAllBSDFtoF3D(meshes, True)
