@@ -31,8 +31,10 @@ Fast64's current OoT operators used here are:
   object.convert_bsdf
 """
 
+import importlib
 import math
 import os
+import sys
 
 import bpy
 from mathutils import Vector
@@ -417,11 +419,20 @@ def import_navi_with_fast64():
 
 def convert_materials_to_f3d():
     """Use Fast64's current BSDF converter when the addon is installed."""
-    if not hasattr(bpy.ops.object, "convert_bsdf"):
-        log("Fast64 material converter not available; materials remain Principled.")
-        return False
-
     scene = bpy.context.scene
+    meshes = [obj for obj in bpy.data.objects if obj.type == "MESH"]
+
+    def converted():
+        materials = {
+            slot.material
+            for obj in meshes
+            for slot in obj.material_slots
+            if slot.material is not None
+        }
+        return bool(materials) and all(getattr(material, "is_f3d", False) for material in materials)
+
+    # Fast64's registered operator is the preferred path on supported Blender
+    # releases.
     try:
         if hasattr(scene, "bsdf_conv_all"):
             scene.bsdf_conv_all = True
@@ -429,16 +440,52 @@ def convert_materials_to_f3d():
             scene.rename_uv_maps = True
 
         deselect_all()
-        meshes = [obj for obj in bpy.data.objects if obj.type == "MESH"]
         for obj in meshes:
             obj.select_set(True)
-        if meshes:
+        if meshes and hasattr(bpy.ops.object, "convert_bsdf"):
             bpy.context.view_layer.objects.active = meshes[0]
             bpy.ops.object.convert_bsdf()
-            log("Converted generated materials to Fast64 F3D materials.")
-            return True
+            if converted():
+                log("Converted generated materials to Fast64 F3D materials.")
+                return True
     except Exception as exc:
-        log("Fast64 material conversion failed: " + repr(exc))
+        log("Fast64 registered material converter failed: " + repr(exc))
+
+    # Blender 5.2 can load Fast64's OoT operators while failing to register the
+    # legacy material-conversion operator. The implementation is still usable,
+    # so locate the enabled package and invoke it directly.
+    roots = []
+    export_class = getattr(bpy.types, "OOT_ExportSkeleton", None)
+    if export_class is not None and ".fast64_internal" in export_class.__module__:
+        roots.append(export_class.__module__.partition(".fast64_internal")[0])
+    roots.extend(
+        name
+        for name in bpy.context.preferences.addons.keys()
+        if "fast64" in name.lower()
+    )
+    roots.extend(
+        name.rpartition(".fast64_internal.f3d_material_converter")[0]
+        for name in sys.modules
+        if name.endswith(".fast64_internal.f3d_material_converter")
+    )
+
+    failures = []
+    for root in dict.fromkeys(root for root in roots if root):
+        module_name = root + ".fast64_internal.f3d_material_converter"
+        try:
+            converter = importlib.import_module(module_name)
+            converter.convertAllBSDFtoF3D(meshes, True)
+            if converted():
+                log("Converted generated materials through the Blender 5.2 Fast64 fallback.")
+                return True
+            failures.append(module_name + " left non-F3D materials")
+        except Exception as exc:
+            failures.append(module_name + ": " + repr(exc))
+
+    if failures:
+        log("Fast64 direct material conversion failed: " + " | ".join(failures))
+    else:
+        log("Fast64 material converter module could not be located.")
     return False
 
 
@@ -755,11 +802,13 @@ def main():
 
     # Fast64 converts all visible mesh materials at once when this operator is
     # available. If Fast64 is absent, the blend still opens normally.
-    convert_materials_to_f3d()
+    materials_converted = convert_materials_to_f3d()
 
     if EXPORT_WITH_FAST64:
         if imported_armature is None:
             raise RuntimeError("Fast64 could not import the real gFairySkel; export aborted.")
+        if not materials_converted:
+            raise RuntimeError("Fast64 could not convert the generated materials to F3D.")
         if not export_with_fast64(armature):
             raise RuntimeError("Fast64 could not export the Trump Navi model.")
 

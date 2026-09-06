@@ -74,14 +74,12 @@ def validate_model_tools() -> str:
         (
             "import bpy",
             "version=bpy.app.version",
-            "assert (4, 0, 0) <= version <= (5, 1, 2), "
-            "f'Ocarina of Trump requires Blender 4.x through 5.1.2; found {bpy.app.version_string}'",
+            "assert (4, 0, 0) <= version < (6, 0, 0), "
+            "f'Ocarina of Trump requires Blender 4.x or 5.x; found {bpy.app.version_string}'",
             "assert hasattr(bpy.ops.object, 'oot_import_skeleton'), "
             "'Fast64 is not enabled or its OoT skeleton importer is unavailable'",
             "assert hasattr(bpy.ops.object, 'oot_export_skeleton'), "
             "'Fast64 is not enabled or its OoT skeleton exporter is unavailable'",
-            "assert hasattr(bpy.ops.object, 'convert_bsdf'), "
-            "'Fast64 is incomplete or incompatible: its F3D material converter is unavailable'",
             "print('OOT_TRUMP_MODEL_TOOLS_OK=' + bpy.app.version_string)",
         )
     )
