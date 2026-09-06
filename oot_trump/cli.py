@@ -74,12 +74,14 @@ def validate_model_tools() -> str:
         (
             "import bpy",
             "version=bpy.app.version",
-            "assert (4, 0, 0) <= version < (6, 0, 0), "
-            "f'Ocarina of Trump requires Blender 4.x or 5.x; found {bpy.app.version_string}'",
+            "assert (4, 0, 0) <= version <= (5, 1, 2), "
+            "f'Ocarina of Trump requires Blender 4.x through 5.1.2; found {bpy.app.version_string}'",
             "assert hasattr(bpy.ops.object, 'oot_import_skeleton'), "
             "'Fast64 is not enabled or its OoT skeleton importer is unavailable'",
             "assert hasattr(bpy.ops.object, 'oot_export_skeleton'), "
             "'Fast64 is not enabled or its OoT skeleton exporter is unavailable'",
+            "assert hasattr(bpy.ops.object, 'convert_bsdf'), "
+            "'Fast64 is incomplete or incompatible: its F3D material converter is unavailable'",
             "print('OOT_TRUMP_MODEL_TOOLS_OK=' + bpy.app.version_string)",
         )
     )
@@ -197,26 +199,25 @@ def validate_exported_navi_model(repo: Path) -> None:
 def export_navi_model(repo: Path, blender: str | None = None) -> None:
     if blender is None:
         blender = validate_model_tools()
-    environment = os.environ.copy()
-    environment.update(
-        {
-            "OOT_DECOMP_PATH": path_for_blender(repo, blender),
-            "NAVI_TRUMP_IMPORT": "1",
-            "NAVI_TRUMP_EXPORT": "1",
-            "NAVI_TRUMP_BLEND_OUTPUT": path_for_blender(
-                ROOT / ".work" / "navi_trump_export.blend", blender
-            ),
-        }
+    settings = {
+        "OOT_DECOMP_PATH": path_for_blender(repo, blender),
+        "NAVI_TRUMP_IMPORT": "1",
+        "NAVI_TRUMP_EXPORT": "1",
+        "NAVI_TRUMP_BLEND_OUTPUT": path_for_blender(
+            ROOT / ".work" / "navi_trump_export.blend", blender
+        ),
+    }
+    script = path_for_blender(ROOT / "navi_trump_fast64_example.py", blender)
+    # Linux environment variables are not automatically inherited by a Win32
+    # process launched through WSL. Inject the settings in Blender's Python so
+    # this behaves identically with Linux Blender and Windows blender.exe.
+    expression = (
+        f"import os, runpy; os.environ.update({settings!r}); "
+        f"runpy.run_path({script!r}, run_name='__main__')"
     )
     subprocess.run(
-        [
-            blender,
-            "--background",
-            "--python",
-            path_for_blender(ROOT / "navi_trump_fast64_example.py", blender),
-        ],
+        [blender, "--background", "--python-expr", expression],
         cwd=ROOT,
-        env=environment,
         check=True,
     )
     validate_exported_navi_model(repo)

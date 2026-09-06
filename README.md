@@ -49,7 +49,8 @@ baserom with one command:
 ```
 
 The full build first launches Blender in background mode and verifies that it
-is Blender 4.x or 5.x with Fast64's OoT skeleton importer and exporter enabled. Run
+is Blender 4.x through 5.1.2 with Fast64's OoT skeleton importer, exporter, and
+F3D material converter enabled. Run
 the same preflight by itself with:
 
 ```bash
@@ -61,7 +62,7 @@ Blender, set `OOT_TRUMP_BLENDER` to its WSL path; the exporter automatically
 converts the decomp, script, and output paths for Windows. For example:
 
 ```bash
-OOT_TRUMP_BLENDER="/mnt/c/Program Files/Blender Foundation/Blender 5.2/blender.exe" \
+OOT_TRUMP_BLENDER="/mnt/c/Program Files/Blender Foundation/Blender 4.5/blender.exe" \
 python3 -m oot_trump check-model-tools
 ```
 

@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from oot_trump.cli import (
     build,
+    export_navi_model,
     find_blender,
     path_for_blender,
     validate_exported_navi_model,
@@ -17,6 +18,25 @@ from oot_trump.project import ProjectError
 
 
 class CliTests(unittest.TestCase):
+    def test_model_export_injects_settings_into_blender_python(self) -> None:
+        with (
+            patch(
+                "oot_trump.cli.path_for_blender",
+                side_effect=lambda path, _blender: "converted:" + Path(path).name,
+            ),
+            patch("oot_trump.cli.subprocess.run") as run,
+            patch("oot_trump.cli.validate_exported_navi_model") as validate_export,
+        ):
+            export_navi_model(Path("/oot"), "/mnt/c/Blender/blender.exe")
+
+        command = run.call_args.args[0]
+        self.assertEqual(command[:3], ["/mnt/c/Blender/blender.exe", "--background", "--python-expr"])
+        self.assertIn("OOT_DECOMP_PATH", command[-1])
+        self.assertIn("converted:oot", command[-1])
+        self.assertIn("NAVI_TRUMP_EXPORT", command[-1])
+        self.assertIn("runpy.run_path", command[-1])
+        validate_export.assert_called_once_with(Path("/oot"))
+
     def test_exported_model_must_replace_gfairyskel_with_trump_geometry(self) -> None:
         with TemporaryDirectory() as directory:
             repo = Path(directory)
@@ -68,6 +88,7 @@ class CliTests(unittest.TestCase):
         self.assertEqual(command[:2], ["/opt/blender/blender", "--background"])
         self.assertIn("oot_import_skeleton", command[-1])
         self.assertIn("oot_export_skeleton", command[-1])
+        self.assertIn("convert_bsdf", command[-1])
 
     def test_model_tool_validation_surfaces_blender_failure(self) -> None:
         completed = SimpleNamespace(returncode=1, stdout="AssertionError: Fast64 is not enabled\n")
