@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ocarina-of-trump"
+version = "0.1.0"
+description = "Reproducible Ocarina of Time Trump-as-Navi parody mod tooling"
+requires-python = ">=3.10"
+
+[project.scripts]
+oot-trump = "oot_trump.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["oot_trump*"]

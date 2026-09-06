@@ -42,15 +42,15 @@ from mathutils import Vector
 # Configuration
 # -----------------------------------------------------------------------------
 
-OOT_DECOMP_PATH = ""  # Example: r"/home/me/oot"
-IMPORT_NAVI_FROM_DECOMP = False
+OOT_DECOMP_PATH = os.environ.get("OOT_DECOMP_PATH", "")
+IMPORT_NAVI_FROM_DECOMP = os.environ.get("NAVI_TRUMP_IMPORT", "0") == "1"
 
 # Leave False for the first test. Set True only after checking the model in
 # Blender and confirming that your decomp path/export settings are correct.
-EXPORT_WITH_FAST64 = False
+EXPORT_WITH_FAST64 = os.environ.get("NAVI_TRUMP_EXPORT", "0") == "1"
 
 # A relative path is resolved next to this script when run with --python.
-OUTPUT_BLEND = "navi_trump_fast64_example.blend"
+OUTPUT_BLEND = os.environ.get("NAVI_TRUMP_BLEND_OUTPUT", "navi_trump_fast64_example.blend")
 
 # Higher detail is useful while modeling. Before a final ROM export, you may
 # want to reduce these values again because the original N64 renderer has tight
@@ -62,6 +62,16 @@ OOT_STYLE = True
 SMOOTH_ROUND_PARTS = False
 ADD_OOT_GLOW = True
 MODEL_SCALE = 1.0
+
+# SkelAnime uses one-based draw limb indices. Fast64 names the corresponding
+# deform bones after the zero-based gFairySkel limb symbols. OoT animates four
+# wing display limbs: 4, 7, 11, and 14.
+WING_BONES = {
+    "L": {"upper": 3, "lower": 6},
+    "R": {"upper": 10, "lower": 13},
+}
+MAX_EXPORT_VERTICES = 1800
+MAX_EXPORT_MATERIALS = 16
 
 
 # -----------------------------------------------------------------------------
@@ -103,6 +113,17 @@ def get_root_bone(armature):
     if not roots:
         raise RuntimeError("The armature has no root bone.")
     return roots[0]
+
+
+def get_limb_bone(armature, limb_index):
+    """Resolve a Fast64 fairy limb bone without depending on its prefix."""
+    suffix = "gFairySkelLimb_{0}".format(limb_index)
+    matches = [bone for bone in armature.data.bones if bone.name.endswith(suffix)]
+    if len(matches) != 1:
+        raise RuntimeError(
+            "Expected one bone ending in {0}; found {1}".format(suffix, len(matches))
+        )
+    return matches[0]
 
 
 def apply_surface_shading(obj, smooth=False):
@@ -555,7 +576,7 @@ def build_character():
 
 def add_oot_glow(armature):
     """Add a preview-only, faceted glow behind the fairy."""
-    if not ADD_OOT_GLOW:
+    if not ADD_OOT_GLOW or EXPORT_WITH_FAST64:
         return None
 
     glow_material = make_material("TrumpFairy_OoTGlow", (0.55, 0.82, 1.0), alpha=0.20)
@@ -577,6 +598,33 @@ def join_and_bind(parts, armature):
     if not parts:
         raise RuntimeError("No generated mesh parts were created.")
 
+    root_name = get_root_bone(armature).name
+    wing_names = {
+        side: {
+            position: get_limb_bone(armature, index).name
+            for position, index in positions.items()
+        }
+        for side, positions in WING_BONES.items()
+    }
+
+    # Bind body geometry to the fairy root. Split each generated wing between
+    # the real upper/lower wing limbs so the original gFairyAnim motion is
+    # retained after Fast64 export.
+    for obj in parts:
+        if obj.name.startswith("TrumpFairy_Wing_"):
+            side = "L" if obj.name.endswith("_L") else "R"
+            upper = obj.vertex_groups.new(name=wing_names[side]["upper"])
+            lower = obj.vertex_groups.new(name=wing_names[side]["lower"])
+            upper_indices = [vertex.index for vertex in obj.data.vertices if vertex.co.z >= 2.0]
+            lower_indices = [vertex.index for vertex in obj.data.vertices if vertex.co.z < 2.0]
+            if upper_indices:
+                upper.add(upper_indices, 1.0, "REPLACE")
+            if lower_indices:
+                lower.add(lower_indices, 1.0, "REPLACE")
+        else:
+            group = obj.vertex_groups.new(name=root_name)
+            group.add([vertex.index for vertex in obj.data.vertices], 1.0, "REPLACE")
+
     deselect_all()
     for obj in parts:
         obj.select_set(True)
@@ -591,17 +639,26 @@ def join_and_bind(parts, armature):
     mesh_obj.parent = armature
     mesh_obj.matrix_world = world_matrix
 
-    root_name = get_root_bone(armature).name
-    vertex_group = mesh_obj.vertex_groups.get(root_name)
-    if vertex_group is None:
-        vertex_group = mesh_obj.vertex_groups.new(name=root_name)
-    vertex_group.add([vertex.index for vertex in mesh_obj.data.vertices], 1.0, "REPLACE")
-
     modifier = mesh_obj.modifiers.new(name="NaviFairyArmature", type="ARMATURE")
     modifier.object = armature
 
-    mesh_obj["Fast64_example_note"] = "All geometry is weighted to the fairy root bone."
-    mesh_obj["Fast64_wing_note"] = "Assign wing vertices to the existing fairy wing bones for wing animation."
+    mesh_obj["Fast64_example_note"] = "Body uses the fairy root; wings use limbs 4, 7, 11, and 14."
+
+    if EXPORT_WITH_FAST64:
+        vertex_count = len(mesh_obj.data.vertices)
+        material_count = len(mesh_obj.data.materials)
+        if vertex_count > MAX_EXPORT_VERTICES:
+            raise RuntimeError(
+                "Model has {0} vertices; export budget is {1}.".format(
+                    vertex_count, MAX_EXPORT_VERTICES
+                )
+            )
+        if material_count > MAX_EXPORT_MATERIALS:
+            raise RuntimeError(
+                "Model has {0} materials; export budget is {1}.".format(
+                    material_count, MAX_EXPORT_MATERIALS
+                )
+            )
 
     return mesh_obj
 
@@ -696,7 +753,11 @@ def main():
     # available. If Fast64 is absent, the blend still opens normally.
     convert_materials_to_f3d()
 
-    export_with_fast64(armature)
+    if EXPORT_WITH_FAST64:
+        if imported_armature is None:
+            raise RuntimeError("Fast64 could not import the real gFairySkel; export aborted.")
+        if not export_with_fast64(armature):
+            raise RuntimeError("Fast64 could not export the Trump Navi model.")
 
     deselect_all()
     mesh_obj.select_set(True)

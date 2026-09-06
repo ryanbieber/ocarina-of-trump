@@ -1,0 +1,16 @@
+{
+  "project": "ocarina-of-trump",
+  "version": "ntsc-1.0",
+  "oot_repository": "https://github.com/zeldaret/oot.git",
+  "oot_revision": "cbe814b25455f14a343a7457c4b1c92af40ede6a",
+  "baserom_md5": [
+    "9f04c8e68534b870f707c247fa4b50fc",
+    "5bd1fe107bf8106b2ab6650abecd54d6"
+  ],
+  "message_data": "extracted/ntsc-1.0/text/message_data.h",
+  "max_voice_seconds": 8.0,
+  "max_voice_vadpcm_bytes": 10485760,
+  "voice_sample_rate": 16000,
+  "voice_channels": 1,
+  "voice_sample_width": 2
+}
