@@ -70,22 +70,10 @@ def path_for_blender(path: Path, blender: str) -> str:
 def validate_model_tools() -> str:
     """Start Blender and prove that the required Fast64 OoT operators exist."""
     blender = find_blender()
-    expression = "; ".join(
-        (
-            "import bpy",
-            "version=bpy.app.version",
-            "assert (4, 0, 0) <= version < (6, 0, 0), "
-            "f'Ocarina of Trump requires Blender 4.x or 5.x; found {bpy.app.version_string}'",
-            "assert hasattr(bpy.ops.object, 'oot_import_skeleton'), "
-            "'Fast64 is not enabled or its OoT skeleton importer is unavailable'",
-            "assert hasattr(bpy.ops.object, 'oot_export_skeleton'), "
-            "'Fast64 is not enabled or its OoT skeleton exporter is unavailable'",
-            "print('OOT_TRUMP_MODEL_TOOLS_OK=' + bpy.app.version_string)",
-        )
-    )
+    preflight = path_for_blender(ROOT / "scripts" / "blender_fast64_preflight.py", blender)
     try:
         result = subprocess.run(
-            [blender, "--background", "--python-expr", expression],
+            [blender, "--background", "--python", preflight],
             cwd=ROOT,
             text=True,
             stdout=subprocess.PIPE,

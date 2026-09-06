@@ -86,8 +86,8 @@ class CliTests(unittest.TestCase):
         self.assertEqual(blender, "/opt/blender/blender")
         command = run.call_args.args[0]
         self.assertEqual(command[:2], ["/opt/blender/blender", "--background"])
-        self.assertIn("oot_import_skeleton", command[-1])
-        self.assertIn("oot_export_skeleton", command[-1])
+        self.assertEqual(command[2], "--python")
+        self.assertTrue(command[-1].endswith("scripts/blender_fast64_preflight.py"))
 
     def test_model_tool_validation_surfaces_blender_failure(self) -> None:
         completed = SimpleNamespace(returncode=1, stdout="AssertionError: Fast64 is not enabled\n")

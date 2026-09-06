@@ -56,6 +56,10 @@ the same preflight by itself with:
 python3 -m oot_trump check-model-tools
 ```
 
+The preflight uses Blender's registered RNA rather than the dynamic `bpy.ops`
+attribute list. If Fast64 is installed but disabled, it attempts to enable the
+add-on and save that Blender profile's preference before validating it.
+
 For Blender 5.2, where Fast64 may load its OoT operators without registering
 the legacy BSDF conversion operator, the model script calls Fast64's underlying
 material converter directly and verifies that every exported material is F3D.
