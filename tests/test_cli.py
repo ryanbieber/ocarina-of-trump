@@ -88,7 +88,9 @@ class CliTests(unittest.TestCase):
 
         self.assertIn("extern Gfx gGlowCircleTextureLoadDL[8];", header)
         self.assertLess(header.index("gGlowCircleTextureLoadDL"), header.index("#endif"))
+        self.assertIn('#include "tex_len.h"', header)
         self.assertIn('#include "circle_glow_textures.h"', source)
+        self.assertIn('#include "gfx.h"', source)
         self.assertIn("Gfx gGlowCircleDL[4]", source)
         self.assertIn("TrumpFairy_Skin", source)
 

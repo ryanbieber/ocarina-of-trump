@@ -214,6 +214,14 @@ def merge_fairy_shared_assets(
         "fairy glow definitions",
     )
     if "gGlowCircleTextureLoadDL" not in generated_header:
+        tex_len_include = '#include "tex_len.h"\n'
+        if tex_len_include not in generated_header:
+            first_line_end = generated_header.find("\n") + 1
+            generated_header = (
+                generated_header[:first_line_end]
+                + tex_len_include
+                + generated_header[first_line_end:]
+            )
         closing_guard = generated_header.rfind("#endif")
         if closing_guard < 0:
             raise ProjectError("Fast64 fairy_skel.h has no closing include guard")
@@ -225,14 +233,16 @@ def merge_fairy_shared_assets(
             + generated_header[closing_guard:]
         )
     if "gGlowCircleTextureLoadDL" not in generated_source:
-        circle_include = '#include "circle_glow_textures.h"\n'
-        if circle_include not in generated_source:
-            first_line_end = generated_source.find("\n") + 1
-            generated_source = (
-                generated_source[:first_line_end]
-                + circle_include
-                + generated_source[first_line_end:]
-            )
+        required_includes = ('#include "circle_glow_textures.h"\n', '#include "gfx.h"\n')
+        first_line_end = generated_source.find("\n") + 1
+        missing_includes = "".join(
+            include for include in required_includes if include not in generated_source
+        )
+        generated_source = (
+            generated_source[:first_line_end]
+            + missing_includes
+            + generated_source[first_line_end:]
+        )
         generated_source = generated_source.rstrip() + "\n\n" + source_assets
     return generated_header, generated_source
 
