@@ -687,6 +687,16 @@ def join_and_bind(parts, armature):
         for side, positions in WING_BONES.items()
     }
 
+    # Fast64 marks imported limbs deformable only when vanilla geometry was
+    # attached to them. The original fairy root is empty, but the replacement
+    # body is intentionally bound there, so explicitly enable deformation on
+    # every limb that receives generated vertices.
+    deform_bones = {root_name}
+    for positions in wing_names.values():
+        deform_bones.update(positions.values())
+    for bone_name in deform_bones:
+        armature.data.bones[bone_name].use_deform = True
+
     # Bind body geometry to the fairy root. Split each generated wing between
     # the real upper/lower wing limbs so the original gFairyAnim motion is
     # retained after Fast64 export.
