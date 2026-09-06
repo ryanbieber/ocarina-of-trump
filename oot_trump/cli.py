@@ -73,7 +73,7 @@ def validate_model_tools() -> str:
     preflight = path_for_blender(ROOT / "scripts" / "blender_fast64_preflight.py", blender)
     try:
         result = subprocess.run(
-            [blender, "--background", "--python", preflight],
+            [blender, "--background", "--python-exit-code", "1", "--python", preflight],
             cwd=ROOT,
             text=True,
             stdout=subprocess.PIPE,
@@ -237,28 +237,38 @@ def merge_fairy_shared_assets(
     return generated_header, generated_source
 
 
+def read_pinned_oot_file(repo: Path, relative: Path) -> str:
+    try:
+        return subprocess.run(
+            ["git", "show", f"HEAD:{relative.as_posix()}"],
+            cwd=repo,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ProjectError(f"Could not load pinned ZeldaRET file: {relative}") from exc
+
+
+def restore_vanilla_fairy_skeleton(repo: Path) -> None:
+    """Ensure Fast64 imports the pinned skeleton rather than a prior generated retry."""
+    relative_base = Path("assets/objects/gameplay_keep/fairy_skel")
+    for suffix in (".h", ".c"):
+        relative = relative_base.with_suffix(suffix)
+        destination = repo / relative
+        destination.write_text(read_pinned_oot_file(repo, relative), encoding="utf-8")
+    print("restored vanilla gFairySkel as the Fast64 import source")
+
+
 def preserve_fairy_shared_assets(repo: Path) -> None:
     """Recover assets colocated with gFairySkel that Fast64 does not know about."""
     relative_base = Path("assets/objects/gameplay_keep/fairy_skel")
     header_path = repo / relative_base.with_suffix(".h")
     source_path = repo / relative_base.with_suffix(".c")
     try:
-        vanilla_header = subprocess.run(
-            ["git", "show", f"HEAD:{relative_base.with_suffix('.h').as_posix()}"],
-            cwd=repo,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-        ).stdout
-        vanilla_source = subprocess.run(
-            ["git", "show", f"HEAD:{relative_base.with_suffix('.c').as_posix()}"],
-            cwd=repo,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-        ).stdout
+        vanilla_header = read_pinned_oot_file(repo, relative_base.with_suffix(".h"))
+        vanilla_source = read_pinned_oot_file(repo, relative_base.with_suffix(".c"))
         generated_header = header_path.read_text(encoding="utf-8")
         generated_source = source_path.read_text(encoding="utf-8")
     except (OSError, subprocess.CalledProcessError) as exc:
@@ -275,6 +285,7 @@ def preserve_fairy_shared_assets(repo: Path) -> None:
 def export_navi_model(repo: Path, blender: str | None = None) -> None:
     if blender is None:
         blender = validate_model_tools()
+    restore_vanilla_fairy_skeleton(repo)
     settings = {
         "OOT_DECOMP_PATH": path_for_blender(repo, blender),
         "NAVI_TRUMP_IMPORT": "1",
@@ -292,7 +303,7 @@ def export_navi_model(repo: Path, blender: str | None = None) -> None:
         f"runpy.run_path({script!r}, run_name='__main__')"
     )
     subprocess.run(
-        [blender, "--background", "--python-expr", expression],
+        [blender, "--background", "--python-exit-code", "1", "--python-expr", expression],
         cwd=ROOT,
         check=True,
     )

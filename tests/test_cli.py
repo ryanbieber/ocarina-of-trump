@@ -41,17 +41,28 @@ class CliTests(unittest.TestCase):
                 side_effect=lambda path, _blender: "converted:" + Path(path).name,
             ),
             patch("oot_trump.cli.subprocess.run") as run,
+            patch("oot_trump.cli.restore_vanilla_fairy_skeleton") as restore_skeleton,
             patch("oot_trump.cli.preserve_fairy_shared_assets") as preserve_assets,
             patch("oot_trump.cli.validate_exported_navi_model") as validate_export,
         ):
             export_navi_model(Path("/oot"), "/mnt/c/Blender/blender.exe")
 
         command = run.call_args.args[0]
-        self.assertEqual(command[:3], ["/mnt/c/Blender/blender.exe", "--background", "--python-expr"])
+        self.assertEqual(
+            command[:5],
+            [
+                "/mnt/c/Blender/blender.exe",
+                "--background",
+                "--python-exit-code",
+                "1",
+                "--python-expr",
+            ],
+        )
         self.assertIn("OOT_DECOMP_PATH", command[-1])
         self.assertIn("converted:oot", command[-1])
         self.assertIn("NAVI_TRUMP_EXPORT", command[-1])
         self.assertIn("runpy.run_path", command[-1])
+        restore_skeleton.assert_called_once_with(Path("/oot"))
         preserve_assets.assert_called_once_with(Path("/oot"))
         validate_export.assert_called_once_with(Path("/oot"))
 
@@ -137,7 +148,7 @@ class CliTests(unittest.TestCase):
         self.assertEqual(blender, "/opt/blender/blender")
         command = run.call_args.args[0]
         self.assertEqual(command[:2], ["/opt/blender/blender", "--background"])
-        self.assertEqual(command[2], "--python")
+        self.assertEqual(command[2:5], ["--python-exit-code", "1", "--python"])
         self.assertTrue(command[-1].endswith("scripts/blender_fast64_preflight.py"))
 
     def test_model_tool_validation_surfaces_blender_failure(self) -> None:
