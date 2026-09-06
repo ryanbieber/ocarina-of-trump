@@ -126,7 +126,7 @@ def bootstrap(repo: Path, config: ProjectConfig, setup: bool) -> None:
     if setup:
         find_baserom(repo, config)
         run(
-            ["make", "setup", f"VERSION={config.version}"],
+            ["make", "setup", f"VERSION={config.version}", "REGION=US"],
             cwd=repo,
             clean_toolchain=True,
         )
@@ -173,10 +173,25 @@ def build(repo: Path) -> None:
     count = install_audio_backend(repo, load_manifest(), config, require_all=True)
     print(f"installed {count} voice clips into ZeldaRET")
     run(
-        ["make", f"VERSION={config.version}", "COMPARE=0"],
+        ["make", f"VERSION={config.version}", "REGION=US", "COMPARE=0"],
         cwd=repo,
         clean_toolchain=True,
     )
+
+
+def validate_exported_navi_model(repo: Path) -> None:
+    source = repo / "assets" / "objects" / "gameplay_keep" / "fairy_skel.c"
+    try:
+        data = source.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ProjectError(f"Fast64 did not produce the expected model source: {source}") from exc
+    missing = [marker for marker in ("gFairySkel", "TrumpFairy") if marker not in data]
+    if missing:
+        raise ProjectError(
+            "Fast64 completed without replacing Navi's compiled skeleton; "
+            f"{source} is missing: {', '.join(missing)}"
+        )
+    print("validated Fast64 Trump Navi source replacement")
 
 
 def export_navi_model(repo: Path, blender: str | None = None) -> None:
@@ -204,6 +219,7 @@ def export_navi_model(repo: Path, blender: str | None = None) -> None:
         env=environment,
         check=True,
     )
+    validate_exported_navi_model(repo)
 
 
 def build_rom(repo: Path, baserom: Path | None, skip_model: bool) -> None:
@@ -237,7 +253,7 @@ def build_rom(repo: Path, baserom: Path | None, skip_model: bool) -> None:
 
     if not (repo / config.message_data).is_file():
         run(
-            ["make", "setup", f"VERSION={config.version}"],
+            ["make", "setup", f"VERSION={config.version}", "REGION=US"],
             cwd=repo,
             clean_toolchain=True,
         )

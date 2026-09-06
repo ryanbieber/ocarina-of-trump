@@ -451,6 +451,10 @@ def export_with_fast64(armature):
 
     scene = bpy.context.scene
     try:
+        # Generic Fast64 exports derive the C skeleton symbol from the Blender
+        # armature name. En_Elf links against gFairySkel, so keep that exact
+        # symbol instead of exporting a parallel NaviFairyArmature skeleton.
+        armature.name = "gFairySkel"
         settings = scene.fast64.oot.skeletonExportSettings
         settings.mode = "Generic"
         settings.folder = "gameplay_keep"

@@ -77,7 +77,8 @@ $WslRom = (& wsl.exe wslpath -u $Rom).Trim()
 & wsl.exe env "OOT_TRUMP_BLENDER=$WslBlender" bash -lc 'export PATH="$HOME/miniconda3/bin:$PATH"; cd ~/ocarina-of-trump && ./scripts/build-rom.sh "$1"' _ "$WslRom"
 ```
 
-The one-shot command validates the ROM before copying it, clones and pins ZeldaRET, runs
+The one-shot command forces the NTSC build to `REGION=US` so the English
+message slot is active. It validates the ROM before copying it, clones and pins ZeldaRET, runs
 `make setup` when needed, exports the Trump Navi model through Blender/Fast64,
 patches all English Navi dialogue, installs the voice soundfonts, and builds the
 ROM. The result remains under `.work/oot/build/`. The command is safe to rerun;

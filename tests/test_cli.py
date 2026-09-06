@@ -1,15 +1,37 @@
 from __future__ import annotations
 
 import unittest
+from tempfile import TemporaryDirectory
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from oot_trump.cli import build, find_blender, path_for_blender, validate_model_tools
+from oot_trump.cli import (
+    build,
+    find_blender,
+    path_for_blender,
+    validate_exported_navi_model,
+    validate_model_tools,
+)
 from oot_trump.project import ProjectError
 
 
 class CliTests(unittest.TestCase):
+    def test_exported_model_must_replace_gfairyskel_with_trump_geometry(self) -> None:
+        with TemporaryDirectory() as directory:
+            repo = Path(directory)
+            source = repo / "assets/objects/gameplay_keep/fairy_skel.c"
+            source.parent.mkdir(parents=True)
+            source.write_text("SkeletonHeader gFairySkel;\n", encoding="utf-8")
+            with self.assertRaisesRegex(ProjectError, "missing: TrumpFairy"):
+                validate_exported_navi_model(repo)
+
+            source.write_text(
+                "SkeletonHeader gFairySkel; Gfx TrumpFairy_Skin[] = {};\n",
+                encoding="utf-8",
+            )
+            validate_exported_navi_model(repo)
+
     def test_find_blender_reports_wsl_install_boundary(self) -> None:
         with (
             patch.dict("os.environ", {}, clear=True),
@@ -69,7 +91,7 @@ class CliTests(unittest.TestCase):
             build(Path("/oot"))
 
         run.assert_called_once_with(
-            ["make", "VERSION=ntsc-1.0", "COMPARE=0"],
+            ["make", "VERSION=ntsc-1.0", "REGION=US", "COMPARE=0"],
             cwd=Path("/oot"),
             clean_toolchain=True,
         )
