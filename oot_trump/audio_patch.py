@@ -166,6 +166,25 @@ def _patch_voice_bank_limit(path: Path) -> None:
     _write(path, text.replace(stock, extended, 1))
 
 
+def _patch_audiobank_spec(path: Path, clips: list[Clip]) -> None:
+    text = path.read_text(encoding="utf-8")
+    start, end = _markers("AUDIOBANK_SPEC")
+    lines = [start]
+    lines.extend(
+        f'    include "$(BUILD_DIR)/assets/audio/soundfonts/Soundfont_{index}.o"'
+        for index in sorted({clip.font_index for clip in clips})
+    )
+    lines.append(end)
+    block = "\n".join(lines)
+    if start in text:
+        _write(path, _replace_block(text, block, "AUDIOBANK_SPEC"))
+        return
+    anchor = '    include "$(BUILD_DIR)/assets/audio/soundfonts/Soundfont_37.o"'
+    if anchor not in text:
+        raise ProjectError("Audiobank soundfont-37 spec anchor not found")
+    _write(path, text.replace(anchor, anchor + "\n" + block, 1))
+
+
 def _patch_sequence(path: Path, clips: list[Clip]) -> None:
     text = path.read_text(encoding="utf-8")
     include_start, include_end = _markers("SEQUENCE_INCLUDES")
@@ -318,8 +337,16 @@ def install_audio_backend(
     sequence = repo / "assets/audio/sequences/seq_0.prg.seq"
     voice_table = repo / "include/tables/sfx/voicebank_table.h"
     sfx_header = repo / "include/sfx.h"
+    audiobank_spec = repo / "spec/spec"
     message_source = repo / "src/code/z_message.c"
-    for path in (samplebank, sequence, voice_table, sfx_header, message_source):
+    for path in (
+        samplebank,
+        sequence,
+        voice_table,
+        sfx_header,
+        audiobank_spec,
+        message_source,
+    ):
         if not path.is_file():
             raise ProjectError(f"missing ZeldaRET build input {path}; run make setup first")
 
@@ -336,6 +363,7 @@ def install_audio_backend(
     _write_soundfonts(repo, clips)
     _patch_voice_table(voice_table, clips)
     _patch_voice_bank_limit(sfx_header)
+    _patch_audiobank_spec(audiobank_spec, clips)
     _patch_sequence(sequence, clips)
     _write_message_include(repo / "include/oot_trump_voice.inc.c", clips)
     _patch_message_source(message_source)

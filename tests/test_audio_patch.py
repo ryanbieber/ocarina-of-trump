@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from oot_trump.audio_patch import (
+    _patch_audiobank_spec,
     _patch_samplebank,
     _patch_sequence,
     _patch_voice_bank_limit,
@@ -18,6 +19,32 @@ from oot_trump.manifest import load_manifest
 
 
 class AudioPatchTests(unittest.TestCase):
+    def test_custom_soundfonts_are_linked_in_audiobank_spec(self) -> None:
+        entries = load_manifest()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            voice_dir = root / "voice"
+            voice_dir.mkdir()
+            for entry in entries:
+                for page in entry.pages:
+                    (voice_dir / page.voice).touch()
+            clips = available_clips(entries, voice_dir, require_all=True)
+            spec = root / "spec"
+            spec.write_text(
+                '    include "$(BUILD_DIR)/assets/audio/soundfonts/Soundfont_37.o"\n'
+                "#if OOT_VERSION >= PAL_1_0\n",
+                encoding="utf-8",
+            )
+
+            _patch_audiobank_spec(spec, clips)
+            first = spec.read_text(encoding="utf-8")
+            _patch_audiobank_spec(spec, clips)
+
+            for index in (38, 39, 40):
+                self.assertIn(f"Soundfont_{index}.o", first)
+            self.assertEqual(first.count("OOT_TRUMP_AUDIOBANK_SPEC_START"), 1)
+            self.assertEqual(spec.read_text(encoding="utf-8"), first)
+
     def test_voice_bank_limit_is_extended_idempotently(self) -> None:
         stock = (
             "static_assert(NA_SE_VO_END - (NA_SE_VO_BASE + 1) <= 256, "
