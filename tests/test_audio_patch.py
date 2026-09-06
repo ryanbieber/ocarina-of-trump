@@ -7,6 +7,7 @@ from pathlib import Path
 from oot_trump.audio_patch import (
     _patch_samplebank,
     _patch_sequence,
+    _patch_voice_bank_limit,
     _patch_voice_table,
     _patch_message_source,
     _write_message_include,
@@ -17,6 +18,23 @@ from oot_trump.manifest import load_manifest
 
 
 class AudioPatchTests(unittest.TestCase):
+    def test_voice_bank_limit_is_extended_idempotently(self) -> None:
+        stock = (
+            "static_assert(NA_SE_VO_END - (NA_SE_VO_BASE + 1) <= 256, "
+            '"Voice Bank SFX Table is limited to 256 entries due to Sequence 0");\n'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            header = Path(directory) / "sfx.h"
+            header.write_text(stock, encoding="utf-8")
+
+            _patch_voice_bank_limit(header)
+            first = header.read_text(encoding="utf-8")
+            _patch_voice_bank_limit(header)
+
+            self.assertIn("<= 512", first)
+            self.assertEqual(first.count("OOT_TRUMP_VOICE_BANK_LIMIT"), 1)
+            self.assertEqual(header.read_text(encoding="utf-8"), first)
+
     def test_catalog_is_split_across_three_64_effect_soundfonts(self) -> None:
         entries = load_manifest()
         with tempfile.TemporaryDirectory() as directory:

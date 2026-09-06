@@ -146,6 +146,26 @@ def _patch_voice_table(path: Path, clips: list[Clip]) -> None:
     _write(path, text)
 
 
+def _patch_voice_bank_limit(path: Path) -> None:
+    text = path.read_text(encoding="utf-8")
+    marker = "/* OOT_TRUMP_VOICE_BANK_LIMIT */"
+    if marker in text:
+        return
+    stock = (
+        "static_assert(NA_SE_VO_END - (NA_SE_VO_BASE + 1) <= 256, "
+        '"Voice Bank SFX Table is limited to 256 entries due to Sequence 0");'
+    )
+    if stock not in text:
+        raise ProjectError("voice-bank SFX limit assertion not found")
+    extended = (
+        marker
+        + "\n"
+        + "static_assert(NA_SE_VO_END - (NA_SE_VO_BASE + 1) <= 512, "
+        + '"Extended Voice Bank SFX Table is limited to 512 entries");'
+    )
+    _write(path, text.replace(stock, extended, 1))
+
+
 def _patch_sequence(path: Path, clips: list[Clip]) -> None:
     text = path.read_text(encoding="utf-8")
     include_start, include_end = _markers("SEQUENCE_INCLUDES")
@@ -297,8 +317,9 @@ def install_audio_backend(
     samplebank = extracted / "samplebanks/SampleBank_0.xml"
     sequence = repo / "assets/audio/sequences/seq_0.prg.seq"
     voice_table = repo / "include/tables/sfx/voicebank_table.h"
+    sfx_header = repo / "include/sfx.h"
     message_source = repo / "src/code/z_message.c"
-    for path in (samplebank, sequence, voice_table, message_source):
+    for path in (samplebank, sequence, voice_table, sfx_header, message_source):
         if not path.is_file():
             raise ProjectError(f"missing ZeldaRET build input {path}; run make setup first")
 
@@ -314,6 +335,7 @@ def install_audio_backend(
     _patch_samplebank(samplebank, clips)
     _write_soundfonts(repo, clips)
     _patch_voice_table(voice_table, clips)
+    _patch_voice_bank_limit(sfx_header)
     _patch_sequence(sequence, clips)
     _write_message_include(repo / "include/oot_trump_voice.inc.c", clips)
     _patch_message_source(message_source)
