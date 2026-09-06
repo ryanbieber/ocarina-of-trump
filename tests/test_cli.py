@@ -5,11 +5,50 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from oot_trump.cli import build
+from oot_trump.cli import build, find_blender, validate_model_tools
 from oot_trump.project import ProjectError
 
 
 class CliTests(unittest.TestCase):
+    def test_find_blender_reports_wsl_install_boundary(self) -> None:
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("oot_trump.cli.shutil.which", return_value=None),
+        ):
+            with self.assertRaisesRegex(ProjectError, "Windows Blender installation"):
+                find_blender()
+
+    def test_find_blender_rejects_windows_executable(self) -> None:
+        with patch("oot_trump.cli.shutil.which", return_value="/mnt/c/Blender/blender.exe"):
+            with self.assertRaisesRegex(ProjectError, "Windows Blender was detected"):
+                find_blender()
+
+    def test_model_tool_validation_checks_fast64_operators(self) -> None:
+        completed = SimpleNamespace(
+            returncode=0,
+            stdout="Blender 4.5.3\nOOT_TRUMP_MODEL_TOOLS_OK=4.5.3 LTS\n",
+        )
+        with (
+            patch("oot_trump.cli.find_blender", return_value="/opt/blender/blender"),
+            patch("oot_trump.cli.subprocess.run", return_value=completed) as run,
+        ):
+            blender = validate_model_tools()
+
+        self.assertEqual(blender, "/opt/blender/blender")
+        command = run.call_args.args[0]
+        self.assertEqual(command[:2], ["/opt/blender/blender", "--background"])
+        self.assertIn("oot_import_skeleton", command[-1])
+        self.assertIn("oot_export_skeleton", command[-1])
+
+    def test_model_tool_validation_surfaces_blender_failure(self) -> None:
+        completed = SimpleNamespace(returncode=1, stdout="AssertionError: Fast64 is not enabled\n")
+        with (
+            patch("oot_trump.cli.find_blender", return_value="/opt/blender/blender"),
+            patch("oot_trump.cli.subprocess.run", return_value=completed),
+        ):
+            with self.assertRaisesRegex(ProjectError, "Fast64 validation failed"):
+                validate_model_tools()
+
     def test_mod_build_disables_retail_rom_comparison(self) -> None:
         config = SimpleNamespace(version="ntsc-1.0")
         with (

@@ -26,6 +26,76 @@ from .voice import estimate_script, export_voice_script, generate_voice_map
 
 
 DEFAULT_OOT_DIR = ROOT / ".work" / "oot"
+BLENDER_ENV = "OOT_TRUMP_BLENDER"
+
+
+def find_blender() -> str:
+    """Locate the Linux Blender executable used by the Fast64 exporter."""
+    configured = os.environ.get(BLENDER_ENV, "blender")
+    blender = shutil.which(configured)
+    if blender is None:
+        raise ProjectError(
+            "Blender was not found in this environment. On WSL, the Windows "
+            "Blender installation and add-ons are separate from Linux. Install "
+            "Blender 4.x in WSL, ensure `blender --version` works, or set "
+            f"{BLENDER_ENV}=/absolute/path/to/linux/blender"
+        )
+    if Path(os.path.realpath(blender)).suffix.lower() == ".exe":
+        raise ProjectError(
+            "Windows Blender was detected from WSL, but Fast64 model export uses "
+            "paths inside the Linux filesystem. Install the Linux Blender 4.x "
+            f"build in WSL and point {BLENDER_ENV} to its `blender` executable"
+        )
+    return blender
+
+
+def validate_model_tools() -> str:
+    """Start Blender and prove that the required Fast64 OoT operators exist."""
+    blender = find_blender()
+    expression = "; ".join(
+        (
+            "import bpy",
+            "version=bpy.app.version",
+            "assert (4, 0, 0) <= version < (5, 0, 0), "
+            "f'Ocarina of Trump requires Blender 4.x; found {bpy.app.version_string}'",
+            "assert hasattr(bpy.ops.object, 'oot_import_skeleton'), "
+            "'Fast64 is not enabled or its OoT skeleton importer is unavailable'",
+            "assert hasattr(bpy.ops.object, 'oot_export_skeleton'), "
+            "'Fast64 is not enabled or its OoT skeleton exporter is unavailable'",
+            "print('OOT_TRUMP_MODEL_TOOLS_OK=' + bpy.app.version_string)",
+        )
+    )
+    try:
+        result = subprocess.run(
+            [blender, "--background", "--python-expr", expression],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=120,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ProjectError("Blender/Fast64 validation timed out after 120 seconds") from exc
+
+    marker = "OOT_TRUMP_MODEL_TOOLS_OK="
+    success_line = next(
+        (line.strip() for line in result.stdout.splitlines() if line.startswith(marker)),
+        None,
+    )
+    if result.returncode != 0 or success_line is None:
+        details = "\n".join(result.stdout.strip().splitlines()[-12:])
+        message = (
+            "Blender/Fast64 validation failed. Start this Linux Blender, enable "
+            "Fast64 in its preferences, save preferences, and retry."
+        )
+        if details:
+            message += "\nBlender output:\n" + details
+        raise ProjectError(message)
+
+    version = success_line.removeprefix(marker)
+    print(f"validated Blender {version} with Fast64 OoT import/export")
+    return blender
 
 
 def bootstrap(repo: Path, config: ProjectConfig, setup: bool) -> None:
@@ -91,13 +161,9 @@ def build(repo: Path) -> None:
     )
 
 
-def export_navi_model(repo: Path) -> None:
-    blender = shutil.which("blender")
+def export_navi_model(repo: Path, blender: str | None = None) -> None:
     if blender is None:
-        raise ProjectError(
-            "Blender is required for the Navi model export; install Blender 4.x "
-            "and enable Fast64, or pass --skip-model"
-        )
+        blender = validate_model_tools()
     environment = os.environ.copy()
     environment.update(
         {
@@ -133,6 +199,10 @@ def build_rom(repo: Path, baserom: Path | None, skip_model: bool) -> None:
         if checksum not in config.baserom_md5:
             raise ProjectError(f"Unsupported {config.version} baserom checksum: {checksum}")
 
+    # Fail before cloning, extraction, or compilation if model tooling is not
+    # usable in the environment that launched this one-shot build.
+    blender = None if skip_model else validate_model_tools()
+
     bootstrap(repo, config, setup=False)
     if baserom is not None:
         destination = stage_baserom(baserom, repo, config)
@@ -152,7 +222,7 @@ def build_rom(repo: Path, baserom: Path | None, skip_model: bool) -> None:
     if skip_model:
         print("skipping Fast64 Navi export (--skip-model)")
     else:
-        export_navi_model(repo)
+        export_navi_model(repo, blender)
     build(repo)
 
 
@@ -180,6 +250,9 @@ def make_parser() -> argparse.ArgumentParser:
     one_shot_parser.add_argument("--oot-dir", type=Path, default=DEFAULT_OOT_DIR)
     one_shot_parser.add_argument(
         "--skip-model", action="store_true", help="build with the existing vanilla fairy model"
+    )
+    sub.add_parser(
+        "check-model-tools", help="validate Blender and the Fast64 OoT import/export operators"
     )
     install_parser = sub.add_parser(
         "install-voice", help="install available WAVs and generated soundfont playback"
@@ -221,6 +294,8 @@ def main(argv: list[str] | None = None) -> int:
                 args.baserom.resolve() if args.baserom is not None else None,
                 args.skip_model,
             )
+        elif args.command == "check-model-tools":
+            validate_model_tools()
         elif args.command == "install-voice":
             config = ProjectConfig.load()
             repo = args.oot_dir.resolve()

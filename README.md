@@ -48,7 +48,20 @@ baserom with one command:
 ./scripts/build-rom.sh /absolute/path/to/baserom.z64
 ```
 
-This validates the ROM before copying it, clones and pins ZeldaRET, runs
+The full build first launches Blender in background mode and verifies that it
+is Blender 4.x with Fast64's OoT skeleton importer and exporter enabled. Run
+the same preflight by itself with:
+
+```bash
+python3 -m oot_trump check-model-tools
+```
+
+On WSL, Blender and Fast64 must be installed in Linux; a Windows `blender.exe`
+is deliberately rejected because it cannot safely consume the build's Linux
+paths. Set `OOT_TRUMP_BLENDER=/absolute/path/to/linux/blender` when Blender is
+not on `PATH`.
+
+The one-shot command validates the ROM before copying it, clones and pins ZeldaRET, runs
 `make setup` when needed, exports the Trump Navi model through Blender/Fast64,
 patches all English Navi dialogue, installs the voice soundfonts, and builds the
 ROM. The result remains under `.work/oot/build/`. The command is safe to rerun;
