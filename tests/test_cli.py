@@ -19,15 +19,20 @@ from oot_trump.project import ProjectError
 
 
 class CliTests(unittest.TestCase):
-    def test_trump_fairy_keeps_rigid_wing_vertex_binding(self) -> None:
+    def test_trump_fairy_uses_one_rigid_model_bone(self) -> None:
         script = (Path(__file__).parent.parent / "navi_trump_fast64_example.py").read_text(
             encoding="utf-8"
         )
         self.assertIn(
-            'upper.add([vertex.index for vertex in obj.data.vertices], 1.0, "REPLACE")',
+            "model_bone_name = get_limb_bone(armature, FAIRY_MODEL_BONE).name",
             script,
         )
-        self.assertNotIn("vertex.co.z >= 2.0", script)
+        self.assertIn(
+            'model_group.add([vertex.index for vertex in mesh_obj.data.vertices], 1.0, "REPLACE")',
+            script,
+        )
+        self.assertIn("FAIRY_MODEL_BONE = 7", script)
+        self.assertNotIn("upper.add(", script)
 
     def test_model_export_injects_settings_into_blender_python(self) -> None:
         with (

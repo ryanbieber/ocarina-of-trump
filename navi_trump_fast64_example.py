@@ -65,13 +65,9 @@ SMOOTH_ROUND_PARTS = False
 ADD_OOT_GLOW = True
 MODEL_SCALE = 1.0
 
-# SkelAnime uses one-based draw limb indices. Fast64 names the corresponding
-# deform bones after the zero-based gFairySkel limb symbols. OoT animates four
-# wing display limbs: 4, 7, 11, and 14.
-WING_BONES = {
-    "L": {"upper": 3, "lower": 6},
-    "R": {"upper": 10, "lower": 13},
-}
+# SkelAnime uses one-based draw limb indices. EnElf_OverrideLimbDraw applies
+# Navi's model scale at draw limb 8, which is Fast64's zero-based limb 7 bone.
+FAIRY_MODEL_BONE = 7
 MAX_EXPORT_VERTICES = 1800
 MAX_EXPORT_MATERIALS = 16
 
@@ -678,38 +674,6 @@ def join_and_bind(parts, armature):
     if not parts:
         raise RuntimeError("No generated mesh parts were created.")
 
-    root_name = get_root_bone(armature).name
-    wing_names = {
-        side: {
-            position: get_limb_bone(armature, index).name
-            for position, index in positions.items()
-        }
-        for side, positions in WING_BONES.items()
-    }
-
-    # Fast64 marks imported limbs deformable only when vanilla geometry was
-    # attached to them. The original fairy root is empty, but the replacement
-    # body is intentionally bound there, so explicitly enable deformation on
-    # every limb that receives generated vertices.
-    deform_bones = {root_name}
-    for positions in wing_names.values():
-        deform_bones.update(positions.values())
-    for bone_name in deform_bones:
-        armature.data.bones[bone_name].use_deform = True
-
-    # Bind body geometry to the fairy root and each complete generated wing to
-    # one of Navi's animated wing limbs. A triangle whose vertices use multiple
-    # limbs makes Fast64 emit a FlexSkeletonHeader, but En_Elf intentionally
-    # uses the rigid SkeletonHeader draw path. Keep every triangle on one limb.
-    for obj in parts:
-        if obj.name.startswith("TrumpFairy_Wing_"):
-            side = "L" if obj.name.endswith("_L") else "R"
-            upper = obj.vertex_groups.new(name=wing_names[side]["upper"])
-            upper.add([vertex.index for vertex in obj.data.vertices], 1.0, "REPLACE")
-        else:
-            group = obj.vertex_groups.new(name=root_name)
-            group.add([vertex.index for vertex in obj.data.vertices], 1.0, "REPLACE")
-
     deselect_all()
     for obj in parts:
         obj.select_set(True)
@@ -717,6 +681,16 @@ def join_and_bind(parts, armature):
     bpy.ops.object.join()
     mesh_obj = bpy.context.object
     mesh_obj.name = "NaviTrump_F3D_Mesh"
+
+    # En_Elf uses the rigid skeleton initializer and draw routine. Make that
+    # invariant explicit by giving the entire joined mesh exactly one bone
+    # group. Limb 7 receives Navi's pulsing model scale at draw limb 8.
+    model_bone_name = get_limb_bone(armature, FAIRY_MODEL_BONE).name
+    armature.data.bones[model_bone_name].use_deform = True
+    for group in list(mesh_obj.vertex_groups):
+        mesh_obj.vertex_groups.remove(group)
+    model_group = mesh_obj.vertex_groups.new(name=model_bone_name)
+    model_group.add([vertex.index for vertex in mesh_obj.data.vertices], 1.0, "REPLACE")
 
     # Preserve the generated mesh's world position when making it an armature
     # child, even when Fast64 imported the armature with a non-unit scale.
@@ -727,7 +701,7 @@ def join_and_bind(parts, armature):
     modifier = mesh_obj.modifiers.new(name="NaviFairyArmature", type="ARMATURE")
     modifier.object = armature
 
-    mesh_obj["Fast64_example_note"] = "Body uses the fairy root; wings use limbs 4, 7, 11, and 14."
+    mesh_obj["Fast64_example_note"] = "Rigid replacement uses gFairySkel draw limb 8."
 
     if EXPORT_WITH_FAST64:
         vertex_count = len(mesh_obj.data.vertices)
