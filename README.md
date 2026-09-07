@@ -98,11 +98,12 @@ size without editing the Blender script, set a different value on the one-shot
 command (for example `NAVI_TRUMP_MODEL_SCALE=0.46`). The exporter passes this
 setting into Windows Blender when the build runs through WSL.
 
-The face uses `trump_face/trump_face_smug_n64.png`, a 64x64 RGBA cutout derived
-from the approved painted source. Fast64 embeds it as an approximately 8 KiB
-RGBA16 texture on a small UV face plate; the original 3D skull and hair remain
-behind it so the character keeps a readable silhouette from angled views.
-The matching talking frame adds another approximately 8 KiB. While a generated
+The face uses `trump_face/trump_face_smug_n64.png`, a 32x32 RGBA cutout derived
+from the approved painted source. Fast64 embeds it as a 2 KiB RGBA16 texture on
+a small UV face plate, safely below the N64 RDP's 4 KiB texture-memory limit;
+the original 3D skull and hair remain behind it so the character keeps a
+readable silhouette from angled views. The matching talking frame adds another
+2 KiB of ROM data and is loaded in place of the calm frame. While a generated
 Trump Navi voice is active, `En_Elf` alternates the two textures every four game
 frames; closing the message immediately restores the calm face. Other fairy
 actors remain on the calm frame.

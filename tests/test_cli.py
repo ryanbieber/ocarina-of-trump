@@ -61,12 +61,14 @@ class CliTests(unittest.TestCase):
         )
         self.assertIn('f3d_mat.combiner1.D_alpha = "PRIMITIVE"', script)
 
-    def test_trump_face_runtime_texture_is_n64_sized_rgba(self) -> None:
+    def test_trump_face_runtime_texture_fits_n64_tmem_as_rgba16(self) -> None:
         root = Path(__file__).parent.parent / "trump_face"
         for filename in ("trump_face_smug_n64.png", "trump_face_smug_talking_n64.png"):
             data = (root / filename).read_bytes()
             self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
-            self.assertEqual(struct.unpack(">II", data[16:24]), (64, 64))
+            # RGBA16 consumes two bytes per texel. A 32x32 frame is 2 KiB,
+            # safely below the RDP's 4 KiB TMEM limit for one material.
+            self.assertEqual(struct.unpack(">II", data[16:24]), (32, 32))
             self.assertEqual(data[24], 8)
             self.assertEqual(data[25], 6)
 
