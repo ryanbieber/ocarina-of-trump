@@ -72,13 +72,17 @@ HIGH_POLY_PREVIEW = True
 OOT_STYLE = True
 SMOOTH_ROUND_PARTS = True
 ADD_OOT_GLOW = True
-MODEL_SCALE = float(os.environ.get("NAVI_TRUMP_MODEL_SCALE", "0.52"))
+MODEL_SCALE = float(os.environ.get("NAVI_TRUMP_MODEL_SCALE", "0.42"))
 
 # SkelAnime uses one-based draw limb indices. EnElf_OverrideLimbDraw applies
 # Navi's model scale at draw limb 8, which is Fast64's zero-based limb 7 bone.
 FAIRY_MODEL_BONE = 7
 MAX_EXPORT_VERTICES = 1800
 MAX_EXPORT_MATERIALS = 16
+# The pinned OoT asset XML declares 952 vertices across adult Link's active
+# near-model limb display lists (child Link uses 895). Keep the replacement at
+# least this detailed while retaining a conservative single-actor upper bound.
+LINK_ADULT_NEAR_VERTEX_REFERENCE = 952
 TRUMP_MATERIAL_COLORS = {}
 
 
@@ -372,7 +376,7 @@ def add_face_plate(name, material):
     center = (0.0, -0.70, 2.69)
     radius_x = 0.66
     radius_z = 0.66
-    segment_count = 12
+    segment_count = 16
     vertices = [center]
     uvs = [(0.5, 0.5)]
     for index in range(segment_count):
@@ -760,26 +764,29 @@ def build_character():
     # A smooth oval cranium plus smaller overlapping cheek/jaw forms avoids the
     # old block silhouette. Overlap is deliberate and survives rigid export.
     parts.append(add_uv_sphere("TrumpFairy_Neck", (0.0, 0.0, 2.05), (0.27, 0.25, 0.31), skin, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Head", (0.0, 0.0, 2.67), (0.67, 0.53, 0.72), skin, 16, 9, True))
-    parts.append(add_uv_sphere("TrumpFairy_Jaw", (0.0, -0.07, 2.39), (0.46, 0.38, 0.34), skin, 12, 7, True))
-    parts.append(add_uv_sphere("TrumpFairy_Cheek_L", (-0.31, -0.31, 2.55), (0.28, 0.23, 0.25), skin, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Cheek_R", (0.31, -0.31, 2.55), (0.28, 0.23, 0.25), skin, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Chin", (0.0, -0.30, 2.27), (0.25, 0.18, 0.17), skin, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Ear_L", (-0.65, 0.0, 2.66), (0.11, 0.13, 0.18), skin, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Ear_R", (0.65, 0.0, 2.66), (0.11, 0.13, 0.18), skin, 8, 5, True))
+    # Match Link's near-model facial density rather than spending the budget on
+    # blocky body primitives. Adult Link's near head alone uses 212 vertices;
+    # this cranium uses 202, with separate jaw, cheek, chin, and ear geometry.
+    parts.append(add_uv_sphere("TrumpFairy_Head", (0.0, 0.0, 2.67), (0.67, 0.53, 0.72), skin, 20, 11, True))
+    parts.append(add_uv_sphere("TrumpFairy_Jaw", (0.0, -0.07, 2.39), (0.46, 0.38, 0.34), skin, 16, 9, True))
+    parts.append(add_uv_sphere("TrumpFairy_Cheek_L", (-0.31, -0.31, 2.55), (0.28, 0.23, 0.25), skin, 10, 6, True))
+    parts.append(add_uv_sphere("TrumpFairy_Cheek_R", (0.31, -0.31, 2.55), (0.28, 0.23, 0.25), skin, 10, 6, True))
+    parts.append(add_uv_sphere("TrumpFairy_Chin", (0.0, -0.30, 2.27), (0.25, 0.18, 0.17), skin, 10, 6, True))
+    parts.append(add_uv_sphere("TrumpFairy_Ear_L", (-0.65, 0.0, 2.66), (0.11, 0.13, 0.18), skin, 10, 6, True))
+    parts.append(add_uv_sphere("TrumpFairy_Ear_R", (0.65, 0.0, 2.66), (0.11, 0.13, 0.18), skin, 10, 6, True))
 
     # The layered comb-over is asymmetric and projects forward over the brow.
     # That silhouette remains readable when Navi is only a few pixels tall.
-    parts.append(add_uv_sphere("TrumpFairy_HairCap", (0.0, 0.06, 3.15), (0.69, 0.49, 0.28), hair, 14, 8, True))
+    parts.append(add_uv_sphere("TrumpFairy_HairCap", (0.0, 0.06, 3.15), (0.69, 0.49, 0.28), hair, 18, 10, True))
     for index, location, scale, material_choice in [
         (0, (-0.39, -0.18, 3.22), (0.36, 0.22, 0.15), hair_shadow),
         (1, (-0.07, -0.29, 3.27), (0.42, 0.18, 0.14), hair),
         (2, (0.31, -0.25, 3.24), (0.42, 0.19, 0.14), hair_highlight),
         (3, (0.56, -0.08, 3.13), (0.24, 0.23, 0.16), hair),
     ]:
-        parts.append(add_uv_sphere("TrumpFairy_HairLock_{0}".format(index), location, scale, material_choice, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Sideburn_L", (-0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Sideburn_R", (0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 8, 5, True))
+        parts.append(add_uv_sphere("TrumpFairy_HairLock_{0}".format(index), location, scale, material_choice, 10, 6, True))
+    parts.append(add_uv_sphere("TrumpFairy_Sideburn_L", (-0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 10, 6, True))
+    parts.append(add_uv_sphere("TrumpFairy_Sideburn_R", (0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 10, 6, True))
 
     # The approved painted face stays legible at Navi's tiny on-screen size.
     # A shallow convex card preserves some volume while avoiding photo-wrap
@@ -875,6 +882,12 @@ def join_and_bind(parts, armature):
     if EXPORT_WITH_FAST64:
         vertex_count = len(mesh_obj.data.vertices)
         material_count = len(mesh_obj.data.materials)
+        if vertex_count < LINK_ADULT_NEAR_VERTEX_REFERENCE:
+            raise RuntimeError(
+                "Model has {0} vertices; adult Link's active near model uses {1}.".format(
+                    vertex_count, LINK_ADULT_NEAR_VERTEX_REFERENCE
+                )
+            )
         if vertex_count > MAX_EXPORT_VERTICES:
             raise RuntimeError(
                 "Model has {0} vertices; export budget is {1}.".format(
@@ -887,6 +900,12 @@ def join_and_bind(parts, armature):
                     material_count, MAX_EXPORT_MATERIALS
                 )
             )
+        log(
+            "Validated {0} model vertices against adult Link's {1}-vertex "
+            "near-model reference ({2} material slots).".format(
+                vertex_count, LINK_ADULT_NEAR_VERTEX_REFERENCE, material_count
+            )
+        )
 
     return mesh_obj
 

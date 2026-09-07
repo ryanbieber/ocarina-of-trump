@@ -42,11 +42,14 @@ class CliTests(unittest.TestCase):
         )
         self.assertIn("vertical_center = (min(vertical_bounds) + max(vertical_bounds)) * 0.5", script)
         self.assertIn("obj.location.z -= vertical_center", script)
-        self.assertIn('NAVI_TRUMP_MODEL_SCALE", "0.52"', script)
+        self.assertIn('NAVI_TRUMP_MODEL_SCALE", "0.42"', script)
         self.assertIn("obj.location *= MODEL_SCALE", script)
         self.assertIn("obj.scale *= MODEL_SCALE", script)
         self.assertIn('add_uv_sphere("TrumpFairy_Head"', script)
         self.assertIn("SMOOTH_ROUND_PARTS = True", script)
+        self.assertIn("LINK_ADULT_NEAR_VERTEX_REFERENCE = 952", script)
+        self.assertIn("vertex_count < LINK_ADULT_NEAR_VERTEX_REFERENCE", script)
+        self.assertIn('skin, 20, 11, True)', script)
         self.assertIn('"trump_face_smug_n64.png"', script)
         self.assertIn('"trump_face_smug_talking_n64.png"', script)
         self.assertNotIn('material["convert_preset"]', script)
@@ -148,6 +151,8 @@ class CliTests(unittest.TestCase):
                 header.read_text(),
             )
             self.assertIn("OOT_TRUMP_FACE_SEGMENT_START", actor.read_text())
+            self.assertIn('#include "segmented_address.h"', actor.read_text())
+            self.assertIn("SEGMENTED_TO_VIRTUAL(", actor.read_text())
             self.assertIn("OotTrump_IsVoicePlaying()", actor.read_text())
             self.assertIn("(this->timer >> 2) & 1", actor.read_text())
 
@@ -259,7 +264,7 @@ class CliTests(unittest.TestCase):
                 patch("oot_trump.cli.ProjectConfig.load", return_value=config),
                 patch("oot_trump.cli.apply"),
                 patch("oot_trump.cli.load_manifest", return_value=[]),
-                patch("oot_trump.cli.install_audio_backend", return_value=176),
+                patch("oot_trump.cli.install_audio_backend", return_value=183),
                 patch("oot_trump.cli.run") as run,
             ):
                 build(repo)
@@ -279,7 +284,7 @@ class CliTests(unittest.TestCase):
                 patch("oot_trump.cli.ProjectConfig.load", return_value=config),
                 patch("oot_trump.cli.apply"),
                 patch("oot_trump.cli.load_manifest", return_value=[]),
-                patch("oot_trump.cli.install_audio_backend", return_value=176),
+                patch("oot_trump.cli.install_audio_backend", return_value=183),
                 patch("oot_trump.cli.run") as run,
             ):
                 build(repo)

@@ -72,23 +72,49 @@ def write_wav(path: Path, samples: array) -> None:
 
 def normalize(samples: array) -> array:
     mean = sum(samples) / len(samples)
-    centered = array("h", (round(value - mean) for value in samples))
+    # A strongly asymmetric waveform can exceed signed-16 range while its DC
+    # offset is removed, before the later peak limiter has a chance to run.
+    centered = array(
+        "h",
+        (
+            max(-32768, min(32767, round(value - mean)))
+            for value in samples
+        ),
+    )
     level = active_rms(centered)
     if level == 0.0:
         raise RuntimeError("audio contains no active speech")
     gain = 10 ** (TARGET_DBFS / 20.0) / level
     ceiling = 32767.0 * (10 ** (PEAK_CEILING_DBFS / 20.0))
-    projected_peak = max(abs(value) for value in centered) * gain
-    if projected_peak > ceiling:
-        gain *= ceiling / projected_peak
-
-    result = array("h", (max(-32768, min(32767, round(value * gain))) for value in centered))
+    # Gain to the active-speech target first, then limit isolated peaks. Merely
+    # backing the whole clip down to accommodate one peak left high-crest-factor
+    # generated speech too quiet and made cue volumes inconsistent.
+    result = array(
+        "h",
+        (round(max(-ceiling, min(ceiling, value * gain))) for value in centered),
+    )
     fade = min(FADE_SAMPLES, len(result) // 2)
     for index in range(fade):
         factor = index / fade
         result[index] = round(result[index] * factor)
         end = len(result) - 1 - index
         result[end] = round(result[end] * factor)
+    # Limiting can lower RMS slightly. Converge back to the target while
+    # retaining the peak ceiling and already-applied click-prevention fades.
+    for _ in range(8):
+        level = active_rms(result)
+        if level == 0.0:
+            break
+        correction = 10 ** (TARGET_DBFS / 20.0) / level
+        if abs(correction - 1.0) < 0.001:
+            break
+        result = array(
+            "h",
+            (
+                round(max(-ceiling, min(ceiling, value * correction)))
+                for value in result
+            ),
+        )
     return result
 
 

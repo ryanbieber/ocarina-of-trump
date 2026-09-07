@@ -10,10 +10,12 @@ legally obtained NTSC 1.0 baserom.
 
 ## Current state
 
-- A low-poly Fast64 Trump fairy generator and preview blend.
+- An OoT-budget Fast64 Trump fairy generator and preview blend.
 - A complete v1 text catalog for Navi's active infospots, quest/flow messages,
   forced door advice, and all 89 used enemy advice IDs (`0x0600` through
-  `0x065C`, excluding unused slots): 176 voiced message pages total.
+  `0x065C`, excluding unused slots): 177 voiced message pages total.
+- Six short Trump-parody cue clips replace Navi's stock call, targeting,
+  conversation-open, and introduction vocals, including “Hey, listen.”
 - A provider-neutral AI voice production sheet, WAV validator, sample WAV,
   deterministic C lookup generator, and a 10 MiB estimated VADPCM budget.
 - Generated sequence-0 playback using three 64-effect soundfonts, a 304-entry
@@ -92,21 +94,25 @@ patches all English Navi dialogue, installs the voice soundfonts, and builds the
 ROM. The result remains under `.work/oot/build/`. The command is safe to rerun;
 it reuses an existing extraction and generated checkout.
 
-The model defaults to `NAVI_TRUMP_MODEL_SCALE=0.52`, applied to both its body
+The model defaults to `NAVI_TRUMP_MODEL_SCALE=0.42`, applied to both its body
 parts and their positions around Navi's centered pivot. To fine-tune its in-game
 size without editing the Blender script, set a different value on the one-shot
-command (for example `NAVI_TRUMP_MODEL_SCALE=0.46`). The exporter passes this
+command (for example `NAVI_TRUMP_MODEL_SCALE=0.38`). The exporter passes this
 setting into Windows Blender when the build runs through WSL.
 
 The face uses `trump_face/trump_face_smug_n64.png`, a 32x32 RGBA cutout derived
 from the approved painted source. Fast64 embeds it as a 2 KiB RGBA16 texture on
 a small UV face plate, safely below the N64 RDP's 4 KiB texture-memory limit;
-the original 3D skull and hair remain behind it so the character keeps a
-readable silhouette from angled views. The matching talking frame adds another
+the higher-density 3D head and hair remain behind it so the character keeps a
+readable silhouette from angled views. The exporter requires at least 952
+vertices—the active near-model budget of adult Link—before accepting the fairy,
+and still caps it at 1,800 vertices. The matching talking frame adds another
 2 KiB of ROM data and is loaded in place of the calm frame. While a generated
-Trump Navi voice is active, `En_Elf` alternates the two textures every four game
-frames; closing the message immediately restores the calm face. Other fairy
-actors remain on the calm frame.
+Trump message or short Navi cue is active, `En_Elf` alternates the two textures
+every four game frames; closing the message immediately restores the calm face.
+Other fairy actors remain on the calm frame. The runtime patch converts the
+Fast64 texture's `gameplay_keep` segmented address before loading segment 9;
+without that conversion the face appears as blue/green garbage pixels.
 
 For an audio-and-dialogue test ROM that retains vanilla Navi's model:
 
@@ -169,8 +175,8 @@ python3 scripts/normalize_voice_catalog.py --check
 python3 -m oot_trump validate-content
 ```
 
-At the current 2,534-word script length, expected compressed audio is roughly
-8.7 MiB at typical delivery speed; the extra budget covers pauses, codebooks,
+At the current 2,601-word script length, expected compressed audio is roughly
+8.9 MiB at typical delivery speed; the extra budget covers pauses, codebooks,
 and table overhead. The audio belongs in ROM-backed `Audiotable` storage and
 must be DMA-cached during playback rather than retained wholesale in RDRAM.
 
@@ -198,7 +204,8 @@ python3 -m oot_trump apply
 
 `apply --check` verifies that every manifest ID exists without writing to the
 decomp. `apply` updates the English `MSG(...)` argument in the extracted text
-file. A strict `build` requires all 176 voice files and completed provenance:
+file. A strict `build` requires all 177 message WAVs, all six Navi cue WAVs,
+and completed provenance:
 
 ```bash
 python3 -m oot_trump build

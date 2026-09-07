@@ -4,6 +4,7 @@
   "dialogue": [
     {"message_id":"0x00E0","context":"Navi offers a Saria call","required_hint":"Choose whether to talk to Saria.","pages":[{"lines":["You want to call Saria, I think.","She knows the forest quite well.","Talk to Saria, or say no."],"voice":"trump_00e0_00.wav"}]},
     {"message_id":"0x00E1","context":"Navi offers her own advice","required_hint":"Choose whether to talk to Navi instead.","pages":[{"lines":["No Saria. That's your decision.","Maybe you want my advice instead.","Say yes or no; it's up to you."],"voice":"trump_00e1_00.wav"}]},
+    {"message_id":"0x00E2","context":"Navi offers to call Saria after giving advice","required_hint":"Choose whether to talk to Saria next.","pages":[{"lines":["Maybe Saria gets the next word.","Very nice; she knows the forest.","Talk to her? Choose yes or no."],"voice":"trump_00e2_00.wav"}]},
     {"message_id":"0x00E3","context":"Navi offers another Saria call","required_hint":"Choose whether to talk to Saria again.","pages":[{"lines":["We can call Saria again.","Sometimes the second call is useful.","Choose yes if you want her."],"voice":"trump_00e3_00.wav"}]},
 
     {"message_id":"0x0201","context":"Door will not open","required_hint":"This door cannot currently be opened.","pages":[{"lines":["Strange. This door will not open.","A door ought to do one thing.","We need another approach."],"voice":"trump_0201_00.wav"}]},

@@ -88,7 +88,8 @@ Expected successful model log markers include:
 
 ```text
 restored vanilla gFairySkel as the Fast64 import source
-[NAVI-TRUMP] Centered refined model on Navi pivot and applied 0.52 scale
+[NAVI-TRUMP] Centered refined model on Navi pivot and applied 0.42 scale
+[NAVI-TRUMP] Validated 952+ model vertices against adult Link's near-model budget.
 [NAVI-TRUMP] Applied explicit colors to 11 Fast64 materials.
 [NAVI-TRUMP] Fast64 skeleton export completed.
 preserved gameplay_keep glow assets alongside the Trump Fairy export
@@ -102,8 +103,9 @@ validated Fast64 Trump Navi source replacement
   language data.
 - Preserve every `required_hint`; jokes must not obscure progression-critical
   instructions.
-- The current catalog is exactly 176 single-page clips. Multi-page audio is
-  intentionally rejected until a page-advance playback hook is implemented.
+- The current catalog is exactly 177 single-page message clips plus six short
+  Navi cue clips. Multi-page message audio is intentionally rejected until a
+  page-advance playback hook is implemented.
 - Filenames are deterministic: `trump_<message-id>_<page-index>.wav`.
 - WAVs must be mono signed 16-bit PCM, 16 kHz, and no longer than eight seconds.
 - Normalize every added or replaced WAV before committing:
@@ -120,6 +122,12 @@ python3 scripts/normalize_voice_catalog.py --check
   extended-page dispatch and voice-table limit must stay synchronized.
 - Message start/continue starts a clip and message close stops it. Exercise
   rapid advance/close behavior after changing playback code.
+- Stock Navi vocals must remain absent from patched ZeldaRET C sources. All six
+  cue IDs must report through `OotTrump_IsVoicePlaying()` so the talking face
+  animates for “Hey, listen,” targeting, talk-open, and introduction cues too.
+- Face textures exported in `gameplay_keep` are segmented addresses. Preserve
+  the `SEGMENTED_TO_VIRTUAL` conversion before assigning texture segment 9;
+  using the symbol directly produces corrupted blue/green pixels.
 - Keep `content/voice-provenance.json` complete and preserve the synthetic
   parody disclosure. Do not generate or replace performances without explicit
   user authorization and documented rights/permission.

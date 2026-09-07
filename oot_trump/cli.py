@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 from .audio_patch import install_audio_backend
-from .manifest import load_manifest, validate_manifest
+from .manifest import load_manifest, load_voice_cues, validate_manifest, validate_voice_cues
 from .message_patch import MessagePatchError, patch_file
 from .project import (
     ProjectConfig,
@@ -129,6 +129,10 @@ def validate(allow_missing_audio: bool) -> list[str]:
     errors = validate_manifest(
         entries, config, ROOT / "content" / "voice", allow_missing_audio
     )
+    cue_errors, _cue_bytes = validate_voice_cues(
+        load_voice_cues(), config, ROOT / "content" / "voice", allow_missing_audio
+    )
+    errors.extend(cue_errors)
     provenance = ROOT / "content" / "voice-provenance.json"
     try:
         data = json.loads(provenance.read_text(encoding="utf-8"))
@@ -174,7 +178,9 @@ def build(repo: Path) -> None:
         )
 
     apply(repo, check=False)
-    count = install_audio_backend(repo, load_manifest(), config, require_all=True)
+    count = install_audio_backend(
+        repo, load_manifest(), config, require_all=True, cues=load_voice_cues()
+    )
     print(f"installed {count} voice clips into ZeldaRET")
     run(
         ["make", f"VERSION={config.version}", "REGION=US", "COMPARE=0"],
@@ -415,6 +421,12 @@ def install_navi_face_animation(repo: Path) -> None:
     header_path.write_text(header, encoding="utf-8")
 
     actor = actor_path.read_text(encoding="utf-8")
+    segmented_include = '#include "segmented_address.h" /* OOT_TRUMP_FACE_SEGMENTS */'
+    if segmented_include not in actor:
+        include_anchor = '#include "assets/objects/gameplay_keep/fairy_anim.h"'
+        if include_anchor not in actor:
+            raise ProjectError("En_Elf face-animation include anchor not found")
+        actor = actor.replace(include_anchor, segmented_include + "\n" + include_anchor, 1)
     declaration = "extern s32 OotTrump_IsVoicePlaying(void); /* OOT_TRUMP_FACE_VOICE_STATE */"
     if declaration not in actor:
         include_anchor = '#include "assets/objects/gameplay_keep/fairy_anim.h"'
@@ -429,10 +441,11 @@ def install_navi_face_animation(repo: Path) -> None:
         [
             face_start,
             "            gSPSegment(POLY_XLU_DISP++, 0x09,",
-            "                       ((this->actor.params == FAIRY_NAVI) && OotTrump_IsVoicePlaying() &&",
-            "                        ((this->timer >> 2) & 1))",
-            f"                           ? {talking_symbol}",
-            f"                           : {idle_symbol});",
+            "                       SEGMENTED_TO_VIRTUAL(",
+            "                           ((this->actor.params == FAIRY_NAVI) && OotTrump_IsVoicePlaying() &&",
+            "                            ((this->timer >> 2) & 1))",
+            f"                               ? {talking_symbol}",
+            f"                               : {idle_symbol}));",
             face_end,
         ]
     )
@@ -465,7 +478,7 @@ def export_navi_model(repo: Path, blender: str | None = None) -> None:
         # Explicit injection also makes this knob work when a Windows Blender
         # process is launched from WSL, where Linux environment inheritance is
         # otherwise inconsistent.
-        "NAVI_TRUMP_MODEL_SCALE": os.environ.get("NAVI_TRUMP_MODEL_SCALE", "0.52"),
+        "NAVI_TRUMP_MODEL_SCALE": os.environ.get("NAVI_TRUMP_MODEL_SCALE", "0.42"),
     }
     script = path_for_blender(ROOT / "navi_trump_fast64_example.py", blender)
     # Linux environment variables are not automatically inherited by a Win32
@@ -605,7 +618,11 @@ def main(argv: list[str] | None = None) -> int:
             repo = args.oot_dir.resolve()
             assert_oot_checkout(repo, config)
             count = install_audio_backend(
-                repo, load_manifest(), config, require_all=not args.allow_missing_audio
+                repo,
+                load_manifest(),
+                config,
+                require_all=not args.allow_missing_audio,
+                cues=load_voice_cues(),
             )
             print(f"installed {count} voice clips into ZeldaRET")
         elif args.command == "verify":
@@ -619,13 +636,17 @@ def main(argv: list[str] | None = None) -> int:
             output = args.output_dir.resolve()
             output.mkdir(parents=True, exist_ok=True)
             entries = load_manifest()
-            export_voice_script(entries, output / "voice-script.json")
+            export_voice_script(
+                entries, output / "voice-script.json", cues=load_voice_cues()
+            )
             generate_voice_map(entries, output / "trump_voice_map.inc.c")
             print(f"wrote voice production files to {output}")
         elif args.command == "estimate-voice":
             if args.words_per_minute <= 0:
                 raise ProjectError("--words-per-minute must be positive")
-            estimate = estimate_script(load_manifest(), args.words_per_minute)
+            estimate = estimate_script(
+                load_manifest(), args.words_per_minute, cues=load_voice_cues()
+            )
             print(json.dumps(estimate, indent=2))
         return 0
     except (MessagePatchError, ProjectError, OSError, ValueError) as exc:

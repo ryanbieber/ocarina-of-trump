@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .manifest import Dialogue
+from .manifest import Dialogue, VoiceCue
 
 
 DISCLOSURE = (
@@ -12,18 +12,24 @@ DISCLOSURE = (
 )
 
 
-def estimate_script(entries: list[Dialogue], words_per_minute: int = 150) -> dict[str, float | int]:
+def estimate_script(
+    entries: list[Dialogue],
+    words_per_minute: int = 150,
+    cues: list[VoiceCue] | None = None,
+) -> dict[str, float | int]:
     words = sum(
         len(line.split())
         for entry in entries
         for page in entry.pages
         for line in page.lines
     )
+    words += sum(len(cue.text.split()) for cue in cues or [])
     seconds = words * 60.0 / words_per_minute
     pcm_bytes = int(seconds * 16000 * 2)
     vadpcm_bytes = int(seconds * 16000 * 9 / 16)
     return {
         "pages": sum(len(entry.pages) for entry in entries),
+        "cues": len(cues or []),
         "words": words,
         "words_per_minute": words_per_minute,
         "seconds": seconds,
@@ -32,7 +38,9 @@ def estimate_script(entries: list[Dialogue], words_per_minute: int = 150) -> dic
     }
 
 
-def export_voice_script(entries: list[Dialogue], output: Path) -> None:
+def export_voice_script(
+    entries: list[Dialogue], output: Path, cues: list[VoiceCue] | None = None
+) -> None:
     clips = []
     for entry in sorted(entries, key=lambda item: item.message_id):
         for page_index, page in enumerate(entry.pages):
@@ -50,6 +58,20 @@ def export_voice_script(entries: list[Dialogue], output: Path) -> None:
                     ),
                 }
             )
+    for cue in cues or []:
+        clips.append(
+            {
+                "file": cue.voice,
+                "cue": cue.name,
+                "context": cue.context,
+                "text": cue.text,
+                "replaces": list(cue.replaces),
+                "direction": (
+                    "Clearly fictional, boastful political-parody caricature; "
+                    "short, energetic, and intelligible; no added words."
+                ),
+            }
+        )
     payload = {
         "schema_version": 1,
         "disclosure": DISCLOSURE,

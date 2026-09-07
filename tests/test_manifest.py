@@ -5,7 +5,13 @@ import unittest
 from array import array
 from pathlib import Path
 
-from oot_trump.manifest import _voice_levels, load_manifest, validate_manifest
+from oot_trump.manifest import (
+    _voice_levels,
+    load_manifest,
+    load_voice_cues,
+    validate_manifest,
+    validate_voice_cues,
+)
 from oot_trump.project import ProjectConfig
 
 
@@ -24,7 +30,29 @@ class ManifestTests(unittest.TestCase):
                 entries, ProjectConfig.load(), Path(directory), allow_missing_audio=True
             )
         self.assertEqual(errors, [])
-        self.assertEqual(len(entries), 176)
+        self.assertEqual(len(entries), 177)
+        self.assertIn(0x00E2, {entry.message_id for entry in entries})
+
+    def test_navi_non_text_voice_cues_are_complete(self) -> None:
+        cues = load_voice_cues()
+        with tempfile.TemporaryDirectory() as directory:
+            errors, _size = validate_voice_cues(
+                cues,
+                ProjectConfig.load(),
+                Path(directory),
+                allow_missing_audio=True,
+            )
+        self.assertEqual(errors, [])
+        self.assertEqual(len(cues), 6)
+        replaced = {name for cue in cues for name in cue.replaces}
+        for stock in (
+            "NA_SE_VO_NAVY_CALL",
+            "NA_SE_VO_NAVY_HELLO",
+            "NA_SE_VO_NAVY_HEAR",
+            "NA_SE_VO_NAVY_ENEMY",
+            "NA_SE_VO_NA_HELLO_2",
+        ):
+            self.assertIn(stock, replaced)
 
     def test_voice_names_are_deterministic(self) -> None:
         for entry in load_manifest():

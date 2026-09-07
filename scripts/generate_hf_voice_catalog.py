@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generate and split the Navi voice catalog with the public HF Gradio Space.
 
-The Space permits nine requests per client.  The 176 short lines are therefore
-packed into nine requests and separated with the Space's documented pause tag.
+The complete message-and-cue catalog is packed into ten requests and separated
+with the Space's documented pause tag.
 Generated source MP3s and resumable state live under .work/voice-hf; final WAVs
 are written to content/voice.
 """
@@ -37,7 +37,7 @@ BASE_URL = (
 )
 LANGUAGE = "\U0001F1FA\U0001F1F8 English"
 SEPARATOR = "<pause:1.4>"
-REQUESTS = 9
+REQUESTS = 10
 MAX_CHARS = 1799
 SAMPLE_RATE = 16_000
 
@@ -66,7 +66,9 @@ def pack(clips: list[dict[str, object]]) -> list[list[dict[str, object]]]:
             if sizes[index] + weight <= MAX_CHARS + len(SEPARATOR)
         ]
         if not candidates:
-            raise SystemExit("The catalog no longer fits in nine legal requests.")
+            raise SystemExit(
+                f"The catalog no longer fits in {REQUESTS} requests of {MAX_CHARS} characters."
+            )
         target = min(candidates, key=lambda index: sizes[index])
         bins[target].append(clip)
         sizes[target] += weight
@@ -85,7 +87,7 @@ def generate_source(batch: list[dict[str, object]], number: int) -> Path:
     mapping = WORK / f"batch-{number:02d}-map.json"
     mapping.write_text(json.dumps(batch, indent=2) + "\n", encoding="utf-8")
     if source.exists() and source.stat().st_size:
-        print(f"batch {number}/9: reusing {source.relative_to(ROOT)}", flush=True)
+        print(f"batch {number}/{REQUESTS}: reusing {source.relative_to(ROOT)}", flush=True)
         return source
 
     text = SEPARATOR.join(str(clip["text"]) for clip in batch)
@@ -99,7 +101,7 @@ def generate_source(batch: list[dict[str, object]], number: int) -> Path:
     (WORK / f"batch-{number:02d}-event.txt").write_text(
         event_id + "\n", encoding="utf-8"
     )
-    print(f"batch {number}/9: accepted ({len(batch)} clips)", flush=True)
+    print(f"batch {number}/{REQUESTS}: accepted ({len(batch)} clips)", flush=True)
 
     audio_url = None
     event_name = None
@@ -140,7 +142,7 @@ def generate_source(batch: list[dict[str, object]], number: int) -> Path:
     audio = requests.get(audio_url, timeout=120)
     audio.raise_for_status()
     source.write_bytes(audio.content)
-    print(f"batch {number}/9: downloaded {len(audio.content):,} bytes", flush=True)
+    print(f"batch {number}/{REQUESTS}: downloaded {len(audio.content):,} bytes", flush=True)
     return source
 
 
@@ -239,7 +241,7 @@ def main() -> int:
             continue
         source = generate_source(batch, number)
         split_source(source, batch)
-        print(f"batch {number}/9: wrote {len(batch)} WAVs", flush=True)
+        print(f"batch {number}/{REQUESTS}: wrote {len(batch)} WAVs", flush=True)
         time.sleep(0.25)
     print(f"generated {len(clips)} catalog WAVs in {OUTPUT.relative_to(ROOT)}")
     return 0

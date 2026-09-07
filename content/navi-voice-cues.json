@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "disclosure": "All cues are fictional video-game parody and are not authentic statements.",
+  "cues": [
+    {
+      "name": "call",
+      "context": "Navi calls for the player's attention; replaces Hey and Listen",
+      "text": "Hey, listen. We have a tremendous quest.",
+      "voice": "trump_cue_call.wav",
+      "replaces": ["NA_SE_VO_NAVY_CALL", "NA_SE_VO_NA_HELLO_2"]
+    },
+    {
+      "name": "target_npc",
+      "context": "Navi highlights a nearby non-player character",
+      "text": "Look who we have here. Very interesting.",
+      "voice": "trump_cue_target_npc.wav",
+      "replaces": ["NA_SE_VO_NAVY_HELLO"]
+    },
+    {
+      "name": "target_object",
+      "context": "Navi highlights an object or point of interest",
+      "text": "Hey, listen. We have a tremendous quest.",
+      "voice": "trump_cue_target_object.wav",
+      "replaces": ["NA_SE_VO_NAVY_HEAR"]
+    },
+    {
+      "name": "target_enemy",
+      "context": "Navi highlights an enemy",
+      "text": "We don't know this one yet. Watch how it moves; choose a weapon.",
+      "voice": "trump_cue_target_enemy.wav",
+      "replaces": ["NA_SE_VO_NAVY_ENEMY"]
+    },
+    {
+      "name": "talk_open",
+      "context": "The player opens a conversation with Navi",
+      "text": "Look who we have here. Very interesting.",
+      "voice": "trump_cue_talk_open.wav",
+      "replaces": ["NA_SE_VO_SK_LAUGH in En_Elf"]
+    },
+    {
+      "name": "intro_hello",
+      "context": "Navi greets Link during the opening cutscene",
+      "text": "Look who we have here. Very interesting.",
+      "voice": "trump_cue_intro_hello.wav",
+      "replaces": ["NA_SE_VO_NA_HELLO_3"]
+    }
+  ]
+}

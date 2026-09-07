@@ -11,16 +11,18 @@ from oot_trump.audio_patch import (
     _patch_voice_bank_limit,
     _patch_voice_table,
     _patch_message_source,
+    _patch_navi_voice_sources,
     _write_message_include,
     _write_soundfonts,
     available_clips,
 )
-from oot_trump.manifest import load_manifest
+from oot_trump.manifest import load_manifest, load_voice_cues
 
 
 class AudioPatchTests(unittest.TestCase):
     def test_custom_soundfonts_are_linked_in_audiobank_spec(self) -> None:
         entries = load_manifest()
+        cues = load_voice_cues()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             voice_dir = root / "voice"
@@ -28,7 +30,9 @@ class AudioPatchTests(unittest.TestCase):
             for entry in entries:
                 for page in entry.pages:
                     (voice_dir / page.voice).touch()
-            clips = available_clips(entries, voice_dir, require_all=True)
+            for cue in cues:
+                (voice_dir / cue.voice).touch()
+            clips = available_clips(entries, voice_dir, require_all=True, cues=cues)
             spec = root / "spec"
             spec.write_text(
                 '    include "$(BUILD_DIR)/assets/audio/soundfonts/Soundfont_37.o"\n'
@@ -64,15 +68,56 @@ class AudioPatchTests(unittest.TestCase):
 
     def test_catalog_is_split_across_three_64_effect_soundfonts(self) -> None:
         entries = load_manifest()
+        cues = load_voice_cues()
         with tempfile.TemporaryDirectory() as directory:
             voice_dir = Path(directory)
             for entry in entries:
                 for page in entry.pages:
                     (voice_dir / page.voice).touch()
-            clips = available_clips(entries, voice_dir, require_all=True)
-            self.assertEqual(len(clips), 176)
+            for cue in cues:
+                (voice_dir / cue.voice).touch()
+            clips = available_clips(entries, voice_dir, require_all=True, cues=cues)
+            self.assertEqual(len(clips), 183)
             self.assertEqual({clip.font_index for clip in clips}, {38, 39, 40})
             self.assertEqual(max(clip.effect_index for clip in clips), 63)
+
+    def test_all_stock_navi_vocal_triggers_are_replaced(self) -> None:
+        entries = load_manifest()
+        cues = load_voice_cues()
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            voice_dir = repo / "voice"
+            voice_dir.mkdir()
+            for entry in entries:
+                for page in entry.pages:
+                    (voice_dir / page.voice).touch()
+            for cue in cues:
+                (voice_dir / cue.voice).touch()
+            clips = available_clips(entries, voice_dir, require_all=True, cues=cues)
+            en_elf = repo / "src/overlays/actors/ovl_En_Elf/z_en_elf.c"
+            parameter = repo / "src/code/z_parameter.c"
+            en_elf.parent.mkdir(parents=True)
+            parameter.parent.mkdir(parents=True)
+            en_elf.write_text(
+                "NA_SE_VO_NAVY_HELLO NA_SE_VO_NAVY_HEAR "
+                "NA_SE_VO_NAVY_ENEMY NA_SE_VO_SK_LAUGH\n",
+                encoding="utf-8",
+            )
+            parameter.write_text(
+                "if (naviCallState == 0x1E) { SFX_PLAY_CENTERED(NA_SE_VO_NAVY_CALL); }\n"
+                "func_800F4524(&gSfxDefaultPos, NA_SE_VO_NA_HELLO_2, 32);\n"
+                "Sfx_PlaySfxCentered2(NA_SE_VO_NA_HELLO_3);\n",
+                encoding="utf-8",
+            )
+
+            _patch_navi_voice_sources(repo, clips)
+
+            patched = en_elf.read_text() + parameter.read_text()
+            self.assertNotIn("NA_SE_VO_NAVY_", patched)
+            self.assertNotIn("NA_SE_VO_NA_HELLO_", patched)
+            self.assertNotIn("NA_SE_VO_SK_LAUGH", en_elf.read_text())
+            self.assertIn("NA_SE_VO_TRUMP_CUE_CALL", patched)
+            self.assertIn("NA_SE_VO_TRUMP_CUE_TALK_OPEN", patched)
 
     def test_generated_audio_sources_are_idempotent(self) -> None:
         entries = load_manifest()[:1]
@@ -143,6 +188,25 @@ class AudioPatchTests(unittest.TestCase):
             self.assertLess(patched.index("OOT_TRUMP_MESSAGE_INCLUDE"), patched.index("Message_CloseTextbox"))
             self.assertIn("Message_PlayTrumpVoice(textId)", patched)
             self.assertIn("Message_StopTrumpVoice()", patched)
+
+    def test_navi_cues_drive_talking_face_state(self) -> None:
+        entries = load_manifest()[:1]
+        cues = load_voice_cues()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            voice_dir = root / "voice"
+            voice_dir.mkdir()
+            (voice_dir / entries[0].pages[0].voice).touch()
+            for cue in cues:
+                (voice_dir / cue.voice).touch()
+            clips = available_clips(entries, voice_dir, require_all=True, cues=cues)
+            include = root / "oot_trump_voice.inc.c"
+
+            _write_message_include(include, clips)
+
+            generated = include.read_text()
+            self.assertEqual(generated.count("Audio_IsSfxPlaying(NA_SE_VO_TRUMP_CUE_"), 6)
+            self.assertIn("Audio_IsSfxPlaying(NA_SE_VO_TRUMP_CUE_CALL)", generated)
 
 
 if __name__ == "__main__":

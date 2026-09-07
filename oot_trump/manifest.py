@@ -15,6 +15,8 @@ from .project import ProjectConfig, ROOT
 
 MESSAGE_ID = re.compile(r"^0x[0-9A-Fa-f]{1,4}$")
 VOICE_NAME = re.compile(r"^trump_[0-9a-f]{4}_[0-9]{2}\.wav$")
+CUE_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
+CUE_VOICE_NAME = re.compile(r"^trump_cue_[a-z0-9_]+\.wav$")
 VOICE_ACTIVE_TARGET_DBFS = -20.0
 VOICE_ACTIVE_TOLERANCE_DB = 0.5
 VOICE_PEAK_CEILING_DBFS = -3.0
@@ -59,6 +61,15 @@ class Dialogue:
     pages: tuple[Page, ...]
 
 
+@dataclass(frozen=True)
+class VoiceCue:
+    name: str
+    context: str
+    text: str
+    voice: str
+    replaces: tuple[str, ...]
+
+
 def load_manifest(path: Path | None = None) -> list[Dialogue]:
     source = path or ROOT / "content" / "dialogue.en.json"
     raw = json.loads(source.read_text(encoding="utf-8"))
@@ -96,6 +107,93 @@ def load_manifest(path: Path | None = None) -> list[Dialogue]:
             )
         )
     return entries
+
+
+def load_voice_cues(path: Path | None = None) -> list[VoiceCue]:
+    source = path or ROOT / "content" / "navi-voice-cues.json"
+    raw = json.loads(source.read_text(encoding="utf-8"))
+    return [
+        VoiceCue(
+            name=item["name"].strip(),
+            context=item["context"].strip(),
+            text=item["text"].strip(),
+            voice=item["voice"].strip(),
+            replaces=tuple(value.strip() for value in item["replaces"]),
+        )
+        for item in raw["cues"]
+    ]
+
+
+def _validate_voice_asset(voice: Path, config: ProjectConfig, errors: list[str]) -> int:
+    """Validate one production WAV and return its estimated VADPCM footprint."""
+    try:
+        with wave.open(str(voice), "rb") as stream:
+            if stream.getnchannels() != config.voice_channels:
+                errors.append(f"{voice}: must be mono")
+            if stream.getsampwidth() != config.voice_sample_width:
+                errors.append(f"{voice}: must be 16-bit PCM")
+            if stream.getframerate() != config.voice_sample_rate:
+                errors.append(
+                    f"{voice}: expected {config.voice_sample_rate} Hz, "
+                    f"found {stream.getframerate()} Hz"
+                )
+            duration = stream.getnframes() / max(1, stream.getframerate())
+            frames = stream.readframes(stream.getnframes())
+            active_db, peak_db = _voice_levels(frames, stream.getframerate())
+            if abs(active_db - VOICE_ACTIVE_TARGET_DBFS) > VOICE_ACTIVE_TOLERANCE_DB:
+                errors.append(
+                    f"{voice}: active speech is {active_db:.2f} dBFS; "
+                    f"normalize to {VOICE_ACTIVE_TARGET_DBFS:.1f} dBFS"
+                )
+            if peak_db > VOICE_PEAK_CEILING_DBFS + 0.05:
+                errors.append(
+                    f"{voice}: peak is {peak_db:.2f} dBFS; "
+                    f"ceiling is {VOICE_PEAK_CEILING_DBFS:.1f} dBFS"
+                )
+            if duration > config.max_voice_seconds:
+                errors.append(
+                    f"{voice}: {duration:.2f}s exceeds {config.max_voice_seconds:.2f}s"
+                )
+            # Nintendo 64 VADPCM frames encode 16 samples in 9 bytes.
+            return ((stream.getnframes() + 15) // 16) * 9 + 256
+    except (wave.Error, EOFError) as exc:
+        errors.append(f"{voice}: invalid WAV: {exc}")
+        return 0
+
+
+def validate_voice_cues(
+    cues: Iterable[VoiceCue],
+    config: ProjectConfig,
+    voice_dir: Path,
+    allow_missing_audio: bool = False,
+) -> tuple[list[str], int]:
+    errors: list[str] = []
+    estimated_vadpcm_bytes = 0
+    seen: set[str] = set()
+    missing: list[Path] = []
+    for cue in cues:
+        if not CUE_NAME.fullmatch(cue.name):
+            errors.append(f"invalid Navi voice cue name: {cue.name!r}")
+        if cue.name in seen:
+            errors.append(f"duplicate Navi voice cue: {cue.name}")
+        seen.add(cue.name)
+        expected = f"trump_cue_{cue.name}.wav"
+        if cue.voice != expected or not CUE_VOICE_NAME.fullmatch(cue.voice):
+            errors.append(f"{cue.name}: voice must be {expected}")
+        if not cue.context or not cue.text or not cue.replaces:
+            errors.append(f"{cue.name}: context, text, and replaces are required")
+        voice = voice_dir / cue.voice
+        if not voice.exists():
+            if not allow_missing_audio:
+                missing.append(voice)
+            continue
+        estimated_vadpcm_bytes += _validate_voice_asset(voice, config, errors)
+    if missing:
+        errors.append(
+            f"missing {len(missing)} Navi cue WAVs in {voice_dir} "
+            f"(first: {', '.join(path.name for path in missing[:3])})"
+        )
+    return errors, estimated_vadpcm_bytes
 
 
 def validate_manifest(
@@ -142,39 +240,7 @@ def validate_manifest(
                 if not allow_missing_audio:
                     missing_voice_files.append(voice)
                 continue
-            try:
-                with wave.open(str(voice), "rb") as stream:
-                    if stream.getnchannels() != config.voice_channels:
-                        errors.append(f"{voice}: must be mono")
-                    if stream.getsampwidth() != config.voice_sample_width:
-                        errors.append(f"{voice}: must be 16-bit PCM")
-                    if stream.getframerate() != config.voice_sample_rate:
-                        errors.append(
-                            f"{voice}: expected {config.voice_sample_rate} Hz, "
-                            f"found {stream.getframerate()} Hz"
-                        )
-                    duration = stream.getnframes() / max(1, stream.getframerate())
-                    frames = stream.readframes(stream.getnframes())
-                    active_db, peak_db = _voice_levels(frames, stream.getframerate())
-                    if abs(active_db - VOICE_ACTIVE_TARGET_DBFS) > VOICE_ACTIVE_TOLERANCE_DB:
-                        errors.append(
-                            f"{voice}: active speech is {active_db:.2f} dBFS; "
-                            f"normalize to {VOICE_ACTIVE_TARGET_DBFS:.1f} dBFS"
-                        )
-                    if peak_db > VOICE_PEAK_CEILING_DBFS + 0.05:
-                        errors.append(
-                            f"{voice}: peak is {peak_db:.2f} dBFS; "
-                            f"ceiling is {VOICE_PEAK_CEILING_DBFS:.1f} dBFS"
-                        )
-                    # Nintendo 64 VADPCM frames encode 16 samples in 9 bytes.
-                    estimated_vadpcm_bytes += ((stream.getnframes() + 15) // 16) * 9
-                    estimated_vadpcm_bytes += 256  # conservative loop/book/table overhead
-                    if duration > config.max_voice_seconds:
-                        errors.append(
-                            f"{voice}: {duration:.2f}s exceeds {config.max_voice_seconds:.2f}s"
-                        )
-            except (wave.Error, EOFError) as exc:
-                errors.append(f"{voice}: invalid WAV: {exc}")
+            estimated_vadpcm_bytes += _validate_voice_asset(voice, config, errors)
 
     if estimated_vadpcm_bytes > config.max_voice_vadpcm_bytes:
         errors.append(
@@ -206,7 +272,7 @@ def validate_manifest(
     }
     required_enemy_ids = set(range(0x0600, 0x065D)) - {0x060B, 0x062C, 0x0638, 0x063C}
     required_flow_ids = {
-        0x00E0, 0x00E1, 0x00E3,
+        0x00E0, 0x00E1, 0x00E2, 0x00E3,
         0x0201, 0x0202, 0x0203, 0x0204, 0x020B, 0x0225,
     }
     missing = sorted(
