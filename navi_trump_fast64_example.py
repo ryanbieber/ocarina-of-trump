@@ -318,84 +318,123 @@ def add_flat_mesh(name, vertices, faces, material):
     return obj
 
 
-def add_wing(name, side, material):
-    """Create a faceted wing as a small triangle fan."""
-    s = float(side)
-    vertices = [
-        (s * 0.25, 0.20, 1.90),
-        (s * 0.62, 0.26, 2.38),
-        (s * 1.08, 0.30, 2.62),
-        (s * 1.55, 0.32, 2.50),
-        (s * 1.85, 0.30, 2.05),
-        (s * 1.65, 0.27, 1.72),
-        (s * 1.55, 0.25, 1.45),
-        (s * 0.90, 0.22, 1.48),
-        (s * 0.55, 0.20, 1.66),
-        (s * 1.22, 0.30, 1.98),
-    ]
-    faces = [
-        (0, 1, 9),
-        (1, 2, 9),
-        (2, 3, 9),
-        (3, 4, 9),
-        (4, 5, 9),
-        (5, 6, 9),
-        (6, 7, 9),
-        (7, 8, 9),
-        (8, 0, 9),
-    ]
-    # Mirroring the vertices reverses the winding order. Flip the face order
-    # on the left wing so both wings receive light from the same side.
-    if side < 0:
-        faces = [tuple(reversed(face)) for face in faces]
+def sample_face_skin(image_path):
+    """Match solid skin to opaque cheek texels, in Blender's linear space."""
+    image = bpy.data.images.load(image_path, check_existing=True)
+    width, height = image.size
+    pixels = list(image.pixels)
+    samples = []
+    # Symmetric cheek patches avoid eyes, lips, hair, and transparent borders.
+    for x_fraction in (0.23, 0.27, 0.73, 0.77):
+        for y_fraction in (0.40, 0.45, 0.50, 0.55):
+            offset = 4 * (int(y_fraction * height) * width + int(x_fraction * width))
+            if pixels[offset + 3] > 0.95:
+                samples.append(pixels[offset:offset + 3])
+    if not samples:
+        raise RuntimeError("Face texture has no opaque cheek samples for skin matching")
+    # Image pixels are encoded sRGB; BSDF and Fast64 color properties are linear.
+    rgb = tuple(sorted(sample[c] for sample in samples)[len(samples) // 2] for c in range(3))
+    linear = tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb)
+    log("Matched skin to face cheek sRGB: " + repr(tuple(round(c, 3) for c in rgb)))
+    return linear
 
-    mesh = bpy.data.meshes.new(name + "Mesh")
-    mesh.from_pydata(vertices, [], faces)
-    mesh.update()
-    obj = bpy.data.objects.new(name, mesh)
-    bpy.context.collection.objects.link(obj)
-    attach_material(obj, material)
-    apply_flat_shading(obj)
+
+def add_tailored_form(name, rings, material, segments=12):
+    """Closed polygon rings give clothing a continuous, deliberately cut shape."""
+    vertices = []
+    for z, rx, ry, cx, cy in rings:
+        for index in range(segments):
+            angle = math.tau * index / segments
+            vertices.append((cx + rx * math.cos(angle), cy + ry * math.sin(angle), z))
+    faces = [tuple(reversed(range(segments)))]
+    for ring in range(len(rings) - 1):
+        for i in range(segments):
+            j = (i + 1) % segments
+            a, b = ring * segments, (ring + 1) * segments
+            faces.append((a + i, a + j, b + j, b + i))
+    faces.append(tuple((len(rings) - 1) * segments + i for i in range(segments)))
+    obj = add_flat_mesh(name, vertices, faces, material)
+    apply_surface_shading(obj, smooth=True)
     return obj
 
 
+def add_wing(name, side, material):
+    """Two narrow, pointed lobes echo Navi's silhouette without broad panels."""
+    vertices, faces = [], []
+    for outline in (
+        ((0.35, 0.27, 1.84), (0.65, 0.34, 2.27), (1.24, 0.42, 2.66),
+         (1.08, 0.37, 2.12), (0.68, 0.29, 1.83)),
+        ((0.36, 0.29, 1.75), (0.77, 0.37, 1.68), (1.03, 0.42, 1.19),
+         (0.64, 0.34, 1.35), (0.43, 0.29, 1.58)),
+    ):
+        base = len(vertices)
+        vertices.extend((side * x, y, z) for x, y, z in outline)
+        for i in range(1, len(outline) - 1):
+            triangle = (base, base + i, base + i + 1)
+            faces.append(tuple(reversed(triangle)) if side > 0 else triangle)
+    return add_flat_mesh(name, vertices, faces, material)
+
+
 def add_lapel(name, side, material):
-    s = float(side)
-    vertices = [
-        (s * 0.05, -0.51, 2.05),
-        (s * 0.40, -0.57, 2.18),
-        (s * 0.18, -0.59, 1.66),
-        (s * 0.02, -0.54, 1.92),
-    ]
-    faces = [(0, 1, 2), (0, 2, 3)]
+    vertices = [(side * x, y, z) for x, y, z in (
+        (0.15, -0.305, 2.04), (0.36, -0.325, 1.97),
+        (0.23, -0.345, 1.79), (0.28, -0.35, 1.73), (0.07, -0.35, 1.38),
+    )]
+    faces = [(0, 1, 2), (0, 2, 4), (2, 3, 4)]
+    if side > 0:
+        faces = [tuple(reversed(face)) for face in faces]
     return add_flat_mesh(name, vertices, faces, material)
 
 
 def add_face_plate(name, material):
-    """Create a gently convex, UV-mapped face card over the modeled skull."""
-    center = (0.0, -0.70, 2.69)
-    radius_x = 0.66
-    radius_z = 0.66
-    segment_count = 16
-    vertices = [center]
+    """Wrap the expression over the head instead of floating a card ahead of it.
+
+    Sample the front envelope of the same ellipsoid used for the skull.
+    Multiple radial rings bring the silhouette back to the temples;
+    the old single fan put every edge at y=-0.59, ahead of the entire skull.
+    Both expressions share these UVs and the existing segment-9 material.
+    """
+    segment_count = 24
+    ring_count = 7
+    head_forms = (
+        ((0.0, 0.0, 2.67), (0.67, 0.53, 0.72)),
+    )
+
+    def surface_point(u, v):
+        x, z = 0.67 * u, 2.67 + 0.72 * v
+        front = 0.0
+        for (cx, cy, cz), (rx, ry, rz) in head_forms:
+            remaining = 1.0 - ((x - cx) / rx) ** 2 - ((z - cz) / rz) ** 2
+            if remaining >= -1e-8:
+                front = min(front, cy - ry * math.sqrt(max(0.0, remaining)))
+        # A restrained nose bridge gives the painted features an actual profile.
+        nose = 0.085 * math.exp(-((u / 0.22) ** 2 + ((v + 0.02) / 0.30) ** 2))
+        return (x, front - 0.025 - nose, z)
+
+    vertices = [surface_point(0.0, 0.0)]
     uvs = [(0.5, 0.5)]
-    for index in range(segment_count):
-        angle = math.tau * index / segment_count
-        cosine = math.cos(angle)
-        sine = math.sin(angle)
-        vertices.append(
-            (
-                center[0] + radius_x * cosine,
-                -0.59,
-                center[2] + radius_z * sine,
-            )
-        )
-        uvs.append((0.5 + 0.5 * cosine, 0.5 + 0.5 * sine))
+    for ring in range(1, ring_count + 1):
+        # Equal angular steps keep the curved rim from cutting into the skull.
+        radius = math.sin(0.5 * math.pi * ring / ring_count)
+        for index in range(segment_count):
+            angle = math.tau * index / segment_count
+            u, v = radius * math.cos(angle), radius * math.sin(angle)
+            vertices.append(surface_point(u, v))
+            uvs.append((0.5 + 0.5 * u, 0.5 + 0.5 * v))
 
     faces = [
         (0, index + 1, ((index + 1) % segment_count) + 1)
         for index in range(segment_count)
     ]
+    for ring in range(1, ring_count):
+        inner = 1 + (ring - 1) * segment_count
+        outer = inner + segment_count
+        for index in range(segment_count):
+            following = (index + 1) % segment_count
+            faces.extend((
+                (inner + index, outer + index, outer + following),
+                (inner + index, outer + following, inner + following),
+            ))
     mesh = bpy.data.meshes.new(name + "Mesh")
     mesh.from_pydata(vertices, [], faces)
     mesh.update()
@@ -650,6 +689,9 @@ def apply_trump_colors_to_f3d(meshes):
                     if hasattr(f3d_mat, "draw_layer") and hasattr(f3d_mat.draw_layer, "oot"):
                         f3d_mat.draw_layer.oot = "Opaque"
                 else:
+                    if base_name == "TrumpFairy_Wings":
+                        # Thin rigid wings must remain visible from either side.
+                        f3d_mat.rdp_settings.g_cull_back = False
                     f3d_mat.prim_color = (1.0, 1.0, 1.0, color[3])
                     f3d_mat.combiner1.D_alpha = "PRIMITIVE"
     if len(updated) != len(TRUMP_MATERIAL_COLORS):
@@ -704,16 +746,15 @@ def build_character():
     # geometry: broad forehead, tapered jaw, swept blond hair, narrowed eyes,
     # pronounced brows, rounded nose, pursed mouth, navy suit, and red tie.
     if OOT_STYLE:
-        # Neutral warm tan matched to the painted face edge. The earlier
-        # saturated orange showed through as a halo around the cutout.
-        skin_color = (0.64, 0.42, 0.30)
-        hair_color = (0.91, 0.68, 0.29)
-        hair_highlight_color = (1.00, 0.86, 0.52)
-        hair_shadow_color = (0.55, 0.34, 0.10)
-        suit_color = (0.025, 0.055, 0.14)
+        # Sample the actual cheek color instead of guessing a tan swatch.
+        skin_color = sample_face_skin(FACE_TEXTURE_PATH)
+        hair_color = (0.48, 0.30, 0.105)
+        hair_highlight_color = (0.63, 0.43, 0.18)
+        hair_shadow_color = (0.28, 0.16, 0.055)
+        suit_color = (0.015, 0.025, 0.055)
         shirt_color = (0.92, 0.91, 0.84)
         tie_color = (0.68, 0.025, 0.035)
-        wing_color = (0.48, 0.78, 1.00)
+        wing_color = (0.65, 0.78, 0.86)
     else:
         skin_color = (0.86, 0.52, 0.34)
         hair_color = (0.95, 0.55, 0.08)
@@ -732,7 +773,7 @@ def build_character():
     shirt = make_material("TrumpFairy_Shirt", shirt_color)
     tie = make_material("TrumpFairy_Tie", tie_color)
     shoe = make_material("TrumpFairy_Shoes", (0.02, 0.015, 0.012))
-    wing = make_material("TrumpFairy_Wings", wing_color, alpha=0.62 if OOT_STYLE else 1.0)
+    wing = make_material("TrumpFairy_Wings", wing_color, alpha=0.42 if OOT_STYLE else 1.0)
     face = make_texture_material(
         "TrumpFairy_Face", FACE_TEXTURE_PATH, "TrumpFairyFaceTexture"
     )
@@ -744,57 +785,75 @@ def build_character():
 
     parts = []
 
-    # Compact formal silhouette. Separate shoulders keep the torso from reading
-    # as one large faceted ball while retaining the fairy's small proportions.
-    parts.append(add_uv_sphere("TrumpFairy_SuitBody", (0.0, 0.02, 1.38), (0.69, 0.43, 0.78), suit, 12, 7, True))
-    parts.append(add_uv_sphere("TrumpFairy_Shoulder_L", (-0.57, 0.01, 1.72), (0.28, 0.38, 0.30), suit, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Shoulder_R", (0.57, 0.01, 1.72), (0.28, 0.38, 0.30), suit, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_ShirtFront", (0.0, -0.42, 1.70), (0.22, 0.055, 0.43), shirt, 8, 5, True))
+    # A jacket hem and visible trousers replace the round floating toy body.
+    parts.append(add_tailored_form("TrumpFairy_SuitBody", (
+        (1.02, 0.43, 0.29, 0.0, 0.02), (1.26, 0.46, 0.31, 0.0, 0.02),
+        (1.66, 0.49, 0.31, 0.0, 0.02), (1.96, 0.52, 0.28, 0.0, 0.02),
+        (2.06, 0.28, 0.22, 0.0, 0.02),
+    ), suit, 16))
+    parts.append(add_flat_mesh("TrumpFairy_ShirtFront", [
+        (-0.16, -0.29, 2.08), (-0.22, -0.33, 1.92), (0.0, -0.35, 1.42),
+        (0.22, -0.33, 1.92), (0.16, -0.29, 2.08),
+    ], [(0, 1, 2), (0, 2, 4), (2, 3, 4)], shirt))
     parts.append(add_lapel("TrumpFairy_Lapel_L", -1, suit))
     parts.append(add_lapel("TrumpFairy_Lapel_R", 1, suit))
-    parts.append(add_cone("TrumpFairy_Tie", (0.0, -0.51, 1.48), 0.11, 0.035, 0.61, tie))
-    parts.append(add_uv_sphere("TrumpFairy_TieKnot", (0.0, -0.54, 1.85), (0.12, 0.055, 0.11), tie, 8, 5, True))
-    parts.append(add_cylinder_between("TrumpFairy_Arm_L", (-0.57, 0.0, 1.70), (-0.82, -0.01, 1.13), 0.15, suit))
-    parts.append(add_cylinder_between("TrumpFairy_Arm_R", (0.57, 0.0, 1.70), (0.82, -0.01, 1.13), 0.15, suit))
-    parts.append(add_uv_sphere("TrumpFairy_Hand_L", (-0.82, -0.03, 1.05), (0.16, 0.14, 0.17), skin, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Hand_R", (0.82, -0.03, 1.05), (0.16, 0.14, 0.17), skin, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Shoe_L", (-0.29, -0.13, 0.43), (0.23, 0.31, 0.12), shoe, 8, 5, True))
-    parts.append(add_uv_sphere("TrumpFairy_Shoe_R", (0.29, -0.13, 0.43), (0.23, 0.31, 0.12), shoe, 8, 5, True))
+    parts.append(add_flat_mesh("TrumpFairy_Tie", [
+        (-0.045, -0.365, 1.93), (-0.07, -0.375, 1.39), (0.0, -0.38, 1.29),
+        (0.07, -0.375, 1.39), (0.045, -0.365, 1.93),
+    ], [(0, 1, 2), (0, 2, 4), (2, 3, 4)], tie))
+    parts.append(add_tailored_form("TrumpFairy_TieKnot", (
+        (1.89, 0.04, 0.025, 0.0, -0.355), (1.99, 0.07, 0.025, 0.0, -0.335),
+    ), tie, 4))
+    for side, suffix in ((-1, "L"), (1, "R")):
+        parts.append(add_tailored_form("TrumpFairy_Sleeve_" + suffix, (
+            (1.14, 0.115, 0.125, side * 0.61, -0.04),
+            (1.53, 0.15, 0.16, side * 0.59, 0.01),
+            (1.90, 0.17, 0.20, side * 0.47, 0.02),
+        ), suit))
+        parts.append(add_uv_sphere("TrumpFairy_Hand_" + suffix, (side * 0.61, -0.06, 1.04), (0.12, 0.11, 0.15), skin, 10, 6, True))
+        parts.append(add_tailored_form("TrumpFairy_Trouser_" + suffix, (
+            (0.30, 0.145, 0.17, side * 0.22, 0.015),
+            (0.64, 0.16, 0.18, side * 0.22, 0.02),
+            (1.10, 0.20, 0.23, side * 0.22, 0.02),
+        ), suit))
+        parts.append(add_uv_sphere("TrumpFairy_Shoe_" + suffix, (side * 0.22, -0.075, 0.27), (0.17, 0.29, 0.12), shoe, 10, 6, False))
 
-    # A smooth oval cranium plus smaller overlapping cheek/jaw forms avoids the
-    # old block silhouette. Overlap is deliberate and survives rigid export.
-    parts.append(add_uv_sphere("TrumpFairy_Neck", (0.0, 0.0, 2.05), (0.27, 0.25, 0.31), skin, 8, 5, True))
+    # A continuous cranium supports the wrapped expression without separate
+    # cheek/chin balls poking through its transparent edge.
+    parts.append(add_uv_sphere("TrumpFairy_Neck", (0.0, 0.0, 2.12), (0.19, 0.19, 0.24), skin, 8, 5, True))
     # Match Link's near-model facial density rather than spending the budget on
     # blocky body primitives. Adult Link's near head alone uses 212 vertices;
-    # this cranium uses 202, with separate jaw, cheek, chin, and ear geometry.
+    # this cranium uses 202, with additional curved face and ear geometry.
     parts.append(add_uv_sphere("TrumpFairy_Head", (0.0, 0.0, 2.67), (0.67, 0.53, 0.72), skin, 20, 11, True))
-    parts.append(add_uv_sphere("TrumpFairy_Jaw", (0.0, -0.07, 2.39), (0.46, 0.38, 0.34), skin, 16, 9, True))
-    parts.append(add_uv_sphere("TrumpFairy_Cheek_L", (-0.31, -0.31, 2.55), (0.28, 0.23, 0.25), skin, 10, 6, True))
-    parts.append(add_uv_sphere("TrumpFairy_Cheek_R", (0.31, -0.31, 2.55), (0.28, 0.23, 0.25), skin, 10, 6, True))
-    parts.append(add_uv_sphere("TrumpFairy_Chin", (0.0, -0.30, 2.27), (0.25, 0.18, 0.17), skin, 10, 6, True))
     parts.append(add_uv_sphere("TrumpFairy_Ear_L", (-0.65, 0.0, 2.66), (0.11, 0.13, 0.18), skin, 10, 6, True))
     parts.append(add_uv_sphere("TrumpFairy_Ear_R", (0.65, 0.0, 2.66), (0.11, 0.13, 0.18), skin, 10, 6, True))
 
     # The layered comb-over is asymmetric and projects forward over the brow.
     # That silhouette remains readable when Navi is only a few pixels tall.
     parts.append(add_uv_sphere("TrumpFairy_HairCap", (0.0, 0.06, 3.15), (0.69, 0.49, 0.28), hair, 18, 10, True))
-    for index, location, scale, material_choice in [
-        (0, (-0.39, -0.18, 3.22), (0.36, 0.22, 0.15), hair_shadow),
-        (1, (-0.07, -0.29, 3.27), (0.42, 0.18, 0.14), hair),
-        (2, (0.31, -0.25, 3.24), (0.42, 0.19, 0.14), hair_highlight),
-        (3, (0.56, -0.08, 3.13), (0.24, 0.23, 0.16), hair),
-    ]:
-        parts.append(add_uv_sphere("TrumpFairy_HairLock_{0}".format(index), location, scale, material_choice, 10, 6, True))
+    forelock = add_uv_sphere("TrumpFairy_HairSweep", (0.0, -0.29, 3.21), (0.63, 0.23, 0.13), hair_highlight, 16, 7, True)
+    forelock.rotation_euler.y = -0.10
+    parts.append(forelock)
     parts.append(add_uv_sphere("TrumpFairy_Sideburn_L", (-0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 10, 6, True))
     parts.append(add_uv_sphere("TrumpFairy_Sideburn_R", (0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 10, 6, True))
 
     # The approved painted face stays legible at Navi's tiny on-screen size.
-    # A shallow convex card preserves some volume while avoiding photo-wrap
-    # distortion over the full skull.
+    # The expression follows the skull and cheeks all the way to the temples,
+    # so side views retain a continuous head silhouette.
     parts.append(add_face_plate("TrumpFairy_FacePlate", face))
     parts.append(
         add_hidden_texture_carrier("TrumpFairy_FaceTalkingCarrier", talking_face)
     )
+
+    # Keep the expression and hair aligned while giving the body more height.
+    head_names = ("Head", "Ear_", "Hair", "Sideburn_", "Face")
+    for obj in parts:
+        if any(obj.name.startswith("TrumpFairy_" + prefix) for prefix in head_names):
+            # Some helpers author vertices in world coordinates, others use
+            # object transforms. Apply one common affine change to both.
+            obj.location *= 0.80
+            obj.location.z += 2.05 * 0.20 + 0.16
+            obj.scale *= 0.80
 
     # Navi wings stay behind the suit; this is still a fairy replacement.
     parts.append(add_wing("TrumpFairy_Wing_L", -1, wing))

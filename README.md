@@ -102,9 +102,15 @@ setting into Windows Blender when the build runs through WSL.
 
 The face uses `trump_face/trump_face_smug_n64.png`, a 32x32 RGBA cutout derived
 from the approved painted source. Fast64 embeds it as a 2 KiB RGBA16 texture on
-a small UV face plate, safely below the N64 RDP's 4 KiB texture-memory limit;
-the higher-density 3D head and hair remain behind it so the character keeps a
-readable silhouette from angled views. The exporter requires at least 952
+a curved UV face surface, safely below the N64 RDP's 4 KiB texture-memory limit.
+The surface follows the skull back to the temples and adds a small nose bridge,
+removing the detached face-card silhouette in side views. Separate cheek and
+chin balls are omitted to prevent them showing through the cutout. The model
+uses 1,358 vertices and 11 materials. A tailored jacket, connected trousers
+and shoes, smaller head, swept hair, and narrow paired wings give it a more
+coherent OoT-style silhouette. Skin color is sampled from opaque cheek texels
+and converted from sRGB to linear space before BSDF/Fast64 assignment, keeping
+the ears, neck, and hands consistent with the face texture. The exporter requires at least 952
 vertices—the active near-model budget of adult Link—before accepting the fairy,
 and still caps it at 1,800 vertices. The matching talking frame adds another
 2 KiB of ROM data and is loaded in place of the calm frame. While a generated
