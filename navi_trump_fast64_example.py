@@ -554,68 +554,10 @@ def fast64_converter_module_names():
     )
 
 
-def configure_cutout_conversion_presets(meshes):
-    materials = {
-        slot.material
-        for obj in meshes
-        for slot in obj.material_slots
-        if slot.material is not None and slot.material.get("Fast64_cutout_texture")
-    }
-    if not materials:
-        return True
-    failures = []
-    for module_name in fast64_converter_module_names():
-        try:
-            converter = importlib.import_module(module_name)
-            preset_keys = [entry[0] for entry in converter.enumMaterialPresets]
-            candidates = []
-            try:
-                # Fast64's helper only maps its small set of default material
-                # families. Derive the neighboring cutout key from the shaded
-                # texture key when the cutout display name is not mapped.
-                base_preset = converter.getDefaultMaterialPreset("Shaded Texture")
-                candidates.append(base_preset + "_cutout")
-            except Exception:
-                pass
-            candidates.extend(
-                [
-                    "oot_shaded_texture_cutout",
-                    "shaded_texture_cutout",
-                    "sm64_shaded_texture_cutout",
-                    "Shaded Texture Cutout",
-                ]
-            )
-            preset = next((key for key in candidates if key in preset_keys), None)
-            if preset is None:
-                preset = next(
-                    (
-                        key
-                        for key in preset_keys
-                        if key.lower().replace(" ", "_").endswith("shaded_texture_cutout")
-                    ),
-                    None,
-                )
-            if preset is None:
-                raise KeyError(
-                    "no shaded texture cutout key in "
-                    + ", ".join(key for key in preset_keys if "texture" in key.lower())
-                )
-            for material in materials:
-                material["convert_preset"] = preset
-            log("Configured Fast64 face cutout preset: " + preset)
-            return True
-        except Exception as exc:
-            failures.append(module_name + ": " + repr(exc))
-    log("Could not configure Fast64 face cutout preset: " + " | ".join(failures))
-    return False
-
-
 def convert_materials_to_f3d():
     """Use Fast64's current BSDF converter when the addon is installed."""
     scene = bpy.context.scene
     meshes = [obj for obj in bpy.data.objects if obj.type == "MESH"]
-    if not configure_cutout_conversion_presets(meshes):
-        return False
 
     def converted():
         materials = {
@@ -690,10 +632,20 @@ def apply_trump_colors_to_f3d(meshes):
                 f3d_mat.set_ambient_from_light = True
                 f3d_mat.default_light_color = color
                 f3d_mat.set_lights = True
-                # Preserve translucent wing alpha in the otherwise shaded
-                # solid combiner. Textured materials retain the cutout alpha
-                # configured by Fast64's Shaded Texture Cutout preset.
-                if not base_name.startswith("TrumpFairy_Face"):
+                # Blender 5.2's Fast64 fallback accepts its normal textured
+                # conversion but does not consistently expose named cutout
+                # presets. Apply the two material differences directly after
+                # conversion: take alpha from TEXEL0 and use the N64 texture-
+                # edge render mode. This also avoids the converter's broken
+                # hidden material-library plane selection path.
+                if base_name.startswith("TrumpFairy_Face"):
+                    f3d_mat.combiner1.D_alpha = "TEXEL0"
+                    f3d_mat.rdp_settings.set_rendermode = True
+                    f3d_mat.rdp_settings.rendermode_preset_cycle_2 = "G_RM_AA_ZB_TEX_EDGE2"
+                    f3d_mat.rdp_settings.g_cull_back = False
+                    if hasattr(f3d_mat, "draw_layer") and hasattr(f3d_mat.draw_layer, "oot"):
+                        f3d_mat.draw_layer.oot = "Opaque"
+                else:
                     f3d_mat.prim_color = (1.0, 1.0, 1.0, color[3])
                     f3d_mat.combiner1.D_alpha = "PRIMITIVE"
     if len(updated) != len(TRUMP_MATERIAL_COLORS):

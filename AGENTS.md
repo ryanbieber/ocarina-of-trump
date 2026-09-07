@@ -66,9 +66,11 @@ after a Python exception while returning success.
 - Center the measured vertical model bounds on the fairy pivot before export.
 - Fast64's Blender 5.2 BSDF fallback does not enable exported colored lights
   by default. Preserve the explicit per-material F3D color transfer and alpha.
-- Keep `trump_face/trump_face_smug_n64.png` at 64x64 RGBA and connected through
-  the `Shaded Texture Cutout` conversion preset. Its runtime cost is 8 KiB as
-  RGBA16; do not point the exporter at the full-resolution source image.
+- Keep `trump_face/trump_face_smug_n64.png` at 64x64 RGBA. Convert it with
+  Fast64's normal textured-material path, then apply `TEXEL0` alpha and
+  `G_RM_AA_ZB_TEX_EDGE2` directly to the F3D material; Blender 5.2's named
+  cutout-preset path is unreliable. Its runtime cost is 8 KiB as RGBA16; do
+  not point the exporter at the full-resolution source image.
 - Keep the matching talking frame at 64x64 RGBA. Fast64 exports both textures;
   the post-export patch routes the visible face through segment 9 and En_Elf
   alternates frames every four game frames only while a Trump voice is active.

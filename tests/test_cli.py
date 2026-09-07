@@ -49,13 +49,16 @@ class CliTests(unittest.TestCase):
         self.assertIn("SMOOTH_ROUND_PARTS = True", script)
         self.assertIn('"trump_face_smug_n64.png"', script)
         self.assertIn('"trump_face_smug_talking_n64.png"', script)
-        self.assertIn('getDefaultMaterialPreset("Shaded Texture")', script)
-        self.assertIn('"oot_shaded_texture_cutout"', script)
-        self.assertIn('material["convert_preset"] = preset', script)
+        self.assertNotIn('material["convert_preset"]', script)
         self.assertIn('add_face_plate("TrumpFairy_FacePlate", face)', script)
         self.assertIn("add_hidden_texture_carrier", script)
         self.assertIn("f3d_mat.default_light_color = color", script)
         self.assertIn("f3d_mat.set_lights = True", script)
+        self.assertIn('f3d_mat.combiner1.D_alpha = "TEXEL0"', script)
+        self.assertIn(
+            'f3d_mat.rdp_settings.rendermode_preset_cycle_2 = "G_RM_AA_ZB_TEX_EDGE2"',
+            script,
+        )
         self.assertIn('f3d_mat.combiner1.D_alpha = "PRIMITIVE"', script)
 
     def test_trump_face_runtime_texture_is_n64_sized_rgba(self) -> None:
