@@ -200,9 +200,9 @@ def make_texture_material(name, image_path, image_name):
     material.node_tree.links.new(texture.outputs["Color"], bsdf.inputs["Base Color"])
     if "Alpha" in bsdf.inputs:
         material.node_tree.links.new(texture.outputs["Alpha"], bsdf.inputs["Alpha"])
-    # Resolve the installed Fast64 version's actual preset key immediately
-    # before conversion. New releases use an OoT-prefixed internal key, while
-    # older releases accepted the human-readable name.
+    # Marker retained for source inspection and validation. Cutout settings are
+    # applied directly to the converted F3D material because Fast64's named
+    # preset conversion is not stable across Blender releases.
     material["Fast64_cutout_texture"] = True
     return material
 

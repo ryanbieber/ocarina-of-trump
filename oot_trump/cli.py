@@ -326,18 +326,53 @@ def install_navi_face_animation(repo: Path) -> None:
         r"(?P<symbol>[A-Za-z_]\w*)\s*\)"
     )
     symbols = {match.group("symbol") for match in texture_call.finditer(source)}
-    idle_candidates = sorted(
-        symbol
-        for symbol in symbols
-        if "TrumpFairyFaceTexture" in symbol and "Talking" not in symbol
+    # Fast64 5.2 derives texture symbols from the material and source filename,
+    # ignoring the Blender image datablock name. Resolve each texture through
+    # the generated face material display list instead of assuming a particular
+    # texture symbol spelling.
+    material_array = re.compile(
+        r"\bGfx\s+(?P<material>[A-Za-z_]\w*)\s*\[\s*\]\s*=\s*\{"
+        r"(?P<body>.*?)^\s*\};",
+        flags=re.DOTALL | re.MULTILINE,
     )
-    talking_candidates = sorted(
-        symbol for symbol in symbols if "TrumpFairyFaceTalkingTexture" in symbol
-    )
+    idle_candidates: set[str] = set()
+    talking_candidates: set[str] = set()
+    discovered_materials = []
+    for match in material_array.finditer(source):
+        material = match.group("material")
+        normalized = re.sub(r"[^a-z0-9]", "", material.lower())
+        if "trumpfairyface" not in normalized:
+            continue
+        discovered_materials.append(material)
+        loaded_texture = texture_call.search(match.group("body"))
+        if loaded_texture is None:
+            continue
+        symbol = loaded_texture.group("symbol")
+        if "talking" in normalized:
+            talking_candidates.add(symbol)
+        else:
+            idle_candidates.add(symbol)
+
+    # Retain compatibility with older Fast64 exports that honored the explicit
+    # Blender image names even if their material arrays were formatted in an
+    # unexpected way.
+    if not idle_candidates:
+        idle_candidates.update(
+            symbol
+            for symbol in symbols
+            if "TrumpFairyFaceTexture" in symbol and "Talking" not in symbol
+        )
+    if not talking_candidates:
+        talking_candidates.update(
+            symbol for symbol in symbols if "TrumpFairyFaceTalkingTexture" in symbol
+        )
+    idle_candidates = sorted(idle_candidates)
+    talking_candidates = sorted(talking_candidates)
     if len(idle_candidates) != 1 or len(talking_candidates) != 1:
         raise ProjectError(
             "Fast64 face export must contain exactly one idle and one talking texture "
-            f"(found idle={idle_candidates}, talking={talking_candidates})"
+            f"(found idle={idle_candidates}, talking={talking_candidates}, "
+            f"face materials={discovered_materials})"
         )
     idle_symbol = idle_candidates[0]
     talking_symbol = talking_candidates[0]

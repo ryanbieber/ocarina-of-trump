@@ -118,13 +118,15 @@ class CliTests(unittest.TestCase):
             header = object_dir / "fairy_skel.h"
             actor = actor_dir / "z_en_elf.c"
             source.write_text(
-                "u64 TrumpFairyFaceTexture[] = { 0 };\n"
-                "u64 TrumpFairyFaceTalkingTexture[] = { 0 };\n"
-                "Gfx TrumpFairyFaceMaterial[] = {\n"
-                "    gsDPSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, TrumpFairyFaceTexture),\n"
+                "u64 TrumpFairy_Face_trump_face_smug_n64_rgba16[] = { 0 };\n"
+                "u64 TrumpFairy_FaceTalking_trump_face_smug_talking_n64_rgba16[] = { 0 };\n"
+                "Gfx TrumpFairy_Face_f3d[] = {\n"
+                "    gsDPSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, "
+                "TrumpFairy_Face_trump_face_smug_n64_rgba16),\n"
                 "};\n"
-                "Gfx TrumpFairyFaceTalkingMaterial[] = {\n"
-                "    gsDPSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, TrumpFairyFaceTalkingTexture),\n"
+                "Gfx TrumpFairy_FaceTalking_f3d[] = {\n"
+                "    gsDPSetTextureImage(G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, "
+                "TrumpFairy_FaceTalking_trump_face_smug_talking_n64_rgba16),\n"
                 "};\n",
                 encoding="utf-8",
             )
@@ -140,8 +142,11 @@ class CliTests(unittest.TestCase):
             install_navi_face_animation(repo)
 
             self.assertIn("0x09000000", source.read_text())
-            self.assertIn("TrumpFairyFaceTalkingTexture", source.read_text())
-            self.assertIn("extern u64 TrumpFairyFaceTexture[];", header.read_text())
+            self.assertIn("TrumpFairy_FaceTalking_trump_face_smug_talking_n64_rgba16", source.read_text())
+            self.assertIn(
+                "extern u64 TrumpFairy_Face_trump_face_smug_n64_rgba16[];",
+                header.read_text(),
+            )
             self.assertIn("OOT_TRUMP_FACE_SEGMENT_START", actor.read_text())
             self.assertIn("OotTrump_IsVoicePlaying()", actor.read_text())
             self.assertIn("(this->timer >> 2) & 1", actor.read_text())
