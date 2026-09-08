@@ -1,0 +1,2836 @@
+{
+  "schema_version": 1,
+  "scope": "English companion dialogue, story mentions, HUD, all actor and message vocal triggers, title, and facing. Other language slots are preserved.",
+  "runtime_acceptance": "Pending user cold-boot replay of intro and normal speech; builds and static checks do not prove runtime acceptance.",
+  "voiced_messages": [
+    {
+      "id": "0x00E0",
+      "context": "Navi offers a Saria call",
+      "pages": [
+        {
+          "lines": [
+            "You want to call Saria, I think.",
+            "She knows the forest quite well.",
+            "Talk to Saria, or say no."
+          ],
+          "voice": "trump_00e0_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x00E1",
+      "context": "Navi offers her own advice",
+      "pages": [
+        {
+          "lines": [
+            "No Saria. That's your decision.",
+            "Maybe you want my advice instead.",
+            "Say yes or no; it's up to you."
+          ],
+          "voice": "trump_00e1_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x00E2",
+      "context": "Navi offers to call Saria after giving advice",
+      "pages": [
+        {
+          "lines": [
+            "Maybe Saria gets the next word.",
+            "Very nice; she knows the forest.",
+            "Talk to her? Choose yes or no."
+          ],
+          "voice": "trump_00e2_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x00E3",
+      "context": "Navi offers another Saria call",
+      "pages": [
+        {
+          "lines": [
+            "We can call Saria again.",
+            "Sometimes the second call is useful.",
+            "Choose yes if you want her."
+          ],
+          "voice": "trump_00e3_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0201",
+      "context": "Door will not open",
+      "pages": [
+        {
+          "lines": [
+            "Strange. This door will not open.",
+            "A door ought to do one thing.",
+            "We need another approach."
+          ],
+          "voice": "trump_0201_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0202",
+      "context": "Iron-barred door",
+      "pages": [
+        {
+          "lines": [
+            "Those bars are serious iron.",
+            "You can pull all day; no result.",
+            "Your hands cannot open them."
+          ],
+          "voice": "trump_0202_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0203",
+      "context": "Small-key door",
+      "pages": [
+        {
+          "lines": [
+            "The chains tell you the answer.",
+            "I've dealt with many locked doors.",
+            "This one needs a Small Key."
+          ],
+          "voice": "trump_0203_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0204",
+      "context": "Boss-key door",
+      "pages": [
+        {
+          "lines": [
+            "This is not an ordinary lock.",
+            "A Small Key won't impress it.",
+            "Come back with the Boss Key."
+          ],
+          "voice": "trump_0204_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x020B",
+      "context": "Puzzle-sealed entrance",
+      "pages": [
+        {
+          "lines": [
+            "Something covers the entrance.",
+            "The room is making us earn it.",
+            "Solve this puzzle to open the way."
+          ],
+          "voice": "trump_020b_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0225",
+      "context": "Wrong-key door",
+      "pages": [
+        {
+          "lines": [
+            "That key does not fit this lock.",
+            "Good key, perhaps. Wrong door.",
+            "Find the one made for this door."
+          ],
+          "voice": "trump_0225_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0100",
+      "context": "Unidentified point of interest",
+      "pages": [
+        {
+          "lines": [
+            "Now, what is that over there?",
+            "People miss these things. I don't.",
+            "Take a look before we move on."
+          ],
+          "voice": "trump_0100_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0101",
+      "context": "Look below the web",
+      "pages": [
+        {
+          "lines": [
+            "There's a whole room below us.",
+            "The web hides it, but not well.",
+            "Look down with the C-Up view."
+          ],
+          "voice": "trump_0101_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0102",
+      "context": "Climbable vines",
+      "pages": [
+        {
+          "lines": [
+            "Look at that wall--rough, vines.",
+            "I've seen climbable walls before.",
+            "This is one. Go straight up."
+          ],
+          "voice": "trump_0102_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0103",
+      "context": "Opening doors",
+      "pages": [
+        {
+          "lines": [
+            "Doors are simple, generally.",
+            "Stand close and watch the blue icon.",
+            "When it says Open, press A."
+          ],
+          "voice": "trump_0103_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0104",
+      "context": "Hanging ladder",
+      "pages": [
+        {
+          "lines": [
+            "They left a ladder hanging there.",
+            "Old ladder, but it may be useful.",
+            "Find a way to bring it down."
+          ],
+          "voice": "trump_0104_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0105",
+      "context": "Door of Time symbol",
+      "pages": [
+        {
+          "lines": [
+            "I've seen that design before.",
+            "Same mark as the Door of Time.",
+            "That cannot be an accident."
+          ],
+          "voice": "trump_0105_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0106",
+      "context": "Recently extinguished torch",
+      "pages": [
+        {
+          "lines": [
+            "This torch was burning recently.",
+            "You can tell. The evidence is there.",
+            "See if we can light it again."
+          ],
+          "voice": "trump_0106_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0107",
+      "context": "Narrow-passage targeting tutorial",
+      "pages": [
+        {
+          "lines": [
+            "Narrow halls invite an ambush.",
+            "They wait around corners--typical.",
+            "Hold Z and sidestep to look first."
+          ],
+          "voice": "trump_0107_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0108",
+      "context": "Movable-block tutorial",
+      "pages": [
+        {
+          "lines": [
+            "This block can work for us.",
+            "Grab it with A; push or pull it.",
+            "Press toward it with A to climb."
+          ],
+          "voice": "trump_0108_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x010C",
+      "context": "Diving tutorial",
+      "pages": [
+        {
+          "lines": [
+            "There's more under the water.",
+            "There usually is; nobody checks.",
+            "Get in, hold A, and dive down."
+          ],
+          "voice": "trump_010c_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0114",
+      "context": "Bomb Flower chain reaction",
+      "pages": [
+        {
+          "lines": [
+            "That's a field of Bomb Flowers.",
+            "One explosion could start the rest.",
+            "Set them all off together."
+          ],
+          "voice": "trump_0114_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0115",
+      "context": "Lava-pit warning",
+      "pages": [
+        {
+          "lines": [
+            "A lot of lava in this room.",
+            "No railings, no plan, no surprise.",
+            "Watch every step you take."
+          ],
+          "voice": "trump_0115_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0116",
+      "context": "Moving-platform switch",
+      "pages": [
+        {
+          "lines": [
+            "That switch raises the platform.",
+            "It will not wait around for us.",
+            "Hit it and ride to floor two."
+          ],
+          "voice": "trump_0116_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0119",
+      "context": "Blind-corner targeting reminder",
+      "pages": [
+        {
+          "lines": [
+            "Another blind corner. I know them.",
+            "Something always waits back there.",
+            "Use Z and look before turning."
+          ],
+          "voice": "trump_0119_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x011F",
+      "context": "Look at a point of interest",
+      "pages": [
+        {
+          "lines": [
+            "What exactly are we looking at?",
+            "It caught your eye for a reason.",
+            "Check it closely before leaving."
+          ],
+          "voice": "trump_011f_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0124",
+      "context": "Desert Colossus face",
+      "pages": [
+        {
+          "lines": [
+            "That face is not welcoming us.",
+            "I've seen friendlier desert statues.",
+            "Inspect the Colossus carefully."
+          ],
+          "voice": "trump_0124_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0126",
+      "context": "Eye of Truth clue",
+      "pages": [
+        {
+          "lines": [
+            "The spirits are giving a clue.",
+            "They whisper; I prefer plain talk.",
+            "Use the eye of truth here."
+          ],
+          "voice": "trump_0126_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0128",
+      "context": "Sacred-feet wind clue",
+      "pages": [
+        {
+          "lines": [
+            "The spirits mention sacred feet.",
+            "A dramatic way to say the boots.",
+            "Wear Hover Boots; follow the wind."
+          ],
+          "voice": "trump_0128_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0129",
+      "context": "Danger-above warning",
+      "pages": [
+        {
+          "lines": [
+            "The wall says danger is above.",
+            "Useful warning, surprisingly clear.",
+            "Keep watching the ceiling."
+          ],
+          "voice": "trump_0129_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x012A",
+      "context": "Danger-below warning",
+      "pages": [
+        {
+          "lines": [
+            "Now the wall says danger below.",
+            "This room covers every direction.",
+            "Watch the ground under you."
+          ],
+          "voice": "trump_012a_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x012B",
+      "context": "Flooding statue",
+      "pages": [
+        {
+          "lines": [
+            "That statue floods the whole floor.",
+            "An astonishing plumbing decision.",
+            "Stop that flow to change the room."
+          ],
+          "voice": "trump_012b_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x012F",
+      "context": "Green electrified tentacle",
+      "pages": [
+        {
+          "lines": [
+            "The green slime is electrified.",
+            "Touching it would be a bad deal.",
+            "Keep away while it has power."
+          ],
+          "voice": "trump_012f_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0131",
+      "context": "Red electrified tentacle",
+      "pages": [
+        {
+          "lines": [
+            "That red slime carries current.",
+            "It looks soft; it is not friendly.",
+            "Do not touch it while charged."
+          ],
+          "voice": "trump_0131_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0132",
+      "context": "Blue electrified tentacle",
+      "pages": [
+        {
+          "lines": [
+            "The blue slime has power too.",
+            "Different color, same awful shock.",
+            "Stay clear until it is safe."
+          ],
+          "voice": "trump_0132_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0133",
+      "context": "Heavy floor switch",
+      "pages": [
+        {
+          "lines": [
+            "This switch wants more weight.",
+            "You alone do not close the deal.",
+            "Put something heavy on it."
+          ],
+          "voice": "trump_0133_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0137",
+      "context": "Tentacle-tail connection",
+      "pages": [
+        {
+          "lines": [
+            "Cutting that tail removed the red.",
+            "So the tails control these things.",
+            "Cut the matching ones as well."
+          ],
+          "voice": "trump_0137_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0139",
+      "context": "Switch behind wall",
+      "pages": [
+        {
+          "lines": [
+            "There's a switch behind this wall.",
+            "They hid it, but we found it.",
+            "Reach it or strike it from here."
+          ],
+          "voice": "trump_0139_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x013A",
+      "context": "Object atop platform",
+      "pages": [
+        {
+          "lines": [
+            "Something is up on that platform.",
+            "High place, deliberate placement.",
+            "Get up there and inspect it."
+          ],
+          "voice": "trump_013a_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x013D",
+      "context": "Real and false flags",
+      "pages": [
+        {
+          "lines": [
+            "Look at all these flags.",
+            "Most are fake--you can feel it.",
+            "Find which ones are actually real."
+          ],
+          "voice": "trump_013d_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0180",
+      "context": "Five Silver Rupees clue",
+      "pages": [
+        {
+          "lines": [
+            "A voice says five Silver Rupees.",
+            "Specific number, simple assignment.",
+            "Collect all five to proceed."
+          ],
+          "voice": "trump_0180_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0181",
+      "context": "Shadow Temple ferry clue",
+      "pages": [
+        {
+          "lines": [
+            "The wall offers a ferry ride.",
+            "To the other world--quite a route.",
+            "Come here when you want the boat."
+          ],
+          "voice": "trump_0181_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0183",
+      "context": "Unsafe shadow ferry",
+      "pages": [
+        {
+          "lines": [
+            "That boat is extremely old.",
+            "Would I certify it? I would not.",
+            "Ride carefully; it may sink."
+          ],
+          "voice": "trump_0183_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0184",
+      "context": "Door across a gap",
+      "pages": [
+        {
+          "lines": [
+            "There's our door across the gap.",
+            "Close enough to see, not to reach.",
+            "Find a way over to it."
+          ],
+          "voice": "trump_0184_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0186",
+      "context": "Strange red ice",
+      "pages": [
+        {
+          "lines": [
+            "That red ice is unusual.",
+            "Normal fire may not make the deal.",
+            "Find something special to melt it."
+          ],
+          "voice": "trump_0186_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0189",
+      "context": "Blue Fire clue",
+      "pages": [
+        {
+          "lines": [
+            "Blue Fire is not natural fire.",
+            "That usually means it has a use.",
+            "Capture some and try it on ice."
+          ],
+          "voice": "trump_0189_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x018C",
+      "context": "Missing Forest Temple flames",
+      "pages": [
+        {
+          "lines": [
+            "The torch flames are all gone.",
+            "The ghosts took them--very obvious.",
+            "Defeat each ghost; bring them back."
+          ],
+          "voice": "trump_018c_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x018D",
+      "context": "Restored Forest Temple flame",
+      "pages": [
+        {
+          "lines": [
+            "One torch is burning again.",
+            "You beat a ghost; the flame returns.",
+            "So that is how this room works."
+          ],
+          "voice": "trump_018d_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x018F",
+      "context": "Arrows painted on floor",
+      "pages": [
+        {
+          "lines": [
+            "They painted arrows on the floor.",
+            "Not subtle, but perhaps helpful.",
+            "See where they are pointing."
+          ],
+          "voice": "trump_018f_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0190",
+      "context": "Twisted corridor",
+      "pages": [
+        {
+          "lines": [
+            "This entire corridor is twisted.",
+            "Walls, floor--a total rearrangement.",
+            "Adjust to its new direction."
+          ],
+          "voice": "trump_0190_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0191",
+      "context": "Ceiling-monster shadows",
+      "pages": [
+        {
+          "lines": [
+            "The ceiling monsters cast shadows.",
+            "They think nobody looks down.",
+            "Watch the floor and dodge them."
+          ],
+          "voice": "trump_0191_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0192",
+      "context": "Nearby treasure chest",
+      "pages": [
+        {
+          "lines": [
+            "There's a treasure chest here.",
+            "Could be useful; could be nonsense.",
+            "Open it and we will know."
+          ],
+          "voice": "trump_0192_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0194",
+      "context": "Forest Temple entrance torch",
+      "pages": [
+        {
+          "lines": [
+            "We saw this torch at the entrance.",
+            "Same torch, moved or connected.",
+            "Remember it for this puzzle."
+          ],
+          "voice": "trump_0194_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0195",
+      "context": "Lit Forest Temple torch",
+      "pages": [
+        {
+          "lines": [
+            "That torch is lit now.",
+            "Something we did caused it.",
+            "It marks progress in this room."
+          ],
+          "voice": "trump_0195_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0197",
+      "context": "Frozen switch",
+      "pages": [
+        {
+          "lines": [
+            "The switch is frozen solid.",
+            "A switch that cannot switch--bad.",
+            "Melt the ice around it."
+          ],
+          "voice": "trump_0197_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0198",
+      "context": "Falling ceiling",
+      "pages": [
+        {
+          "lines": [
+            "The ceiling is coming down.",
+            "No warning, no standards at all.",
+            "Move now and avoid the crush."
+          ],
+          "voice": "trump_0198_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x01A3",
+      "context": "Goron voices below",
+      "pages": [
+        {
+          "lines": [
+            "I hear Gorons below us.",
+            "They're probably trapped down there.",
+            "Find a route to reach them."
+          ],
+          "voice": "trump_01a3_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x01A5",
+      "context": "Darunia room below",
+      "pages": [
+        {
+          "lines": [
+            "Look down--Darunia's room.",
+            "We have seen it from below before.",
+            "Now find a way back into it."
+          ],
+          "voice": "trump_01a5_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x01A7",
+      "context": "Familiar dungeon statue",
+      "pages": [
+        {
+          "lines": [
+            "That statue looks familiar.",
+            "We saw one before; same design.",
+            "Use what worked the first time."
+          ],
+          "voice": "trump_01a7_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x01A9",
+      "context": "Rusted switch",
+      "pages": [
+        {
+          "lines": [
+            "That switch is badly rusted.",
+            "A gentle touch will do nothing.",
+            "Hit it with something heavy."
+          ],
+          "voice": "trump_01a9_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x01AB",
+      "context": "Water vortex warning",
+      "pages": [
+        {
+          "lines": [
+            "These vortexes pull very hard.",
+            "They swallow anything nearby.",
+            "Keep your distance and swim clear."
+          ],
+          "voice": "trump_01ab_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0140",
+      "context": "Great Deku Tree summons",
+      "pages": [
+        {
+          "lines": [
+            "The Great Deku Tree summoned us.",
+            "A tree that important doesn't call",
+            "without a reason. Let's go."
+          ],
+          "voice": "trump_0140_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0141",
+      "context": "Enter the Great Deku Tree",
+      "pages": [
+        {
+          "lines": [
+            "We came all this way to the tree.",
+            "Some people stop at the entrance.",
+            "We're going inside. Be brave."
+          ],
+          "voice": "trump_0141_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0142",
+      "context": "Visit Princess Zelda",
+      "pages": [
+        {
+          "lines": [
+            "The Deku Tree gave us a mission.",
+            "Visit the princess at the castle.",
+            "We should get moving."
+          ],
+          "voice": "trump_0142_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0143",
+      "context": "Find Malon's father",
+      "pages": [
+        {
+          "lines": [
+            "The ranch girl lost her father.",
+            "How do you lose a full-grown man?",
+            "Find him near the castle."
+          ],
+          "voice": "trump_0143_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0144",
+      "context": "Find Zelda in the castle",
+      "pages": [
+        {
+          "lines": [
+            "This castle is bigger than it looks.",
+            "Zelda is somewhere inside it.",
+            "Avoid the guards and find her."
+          ],
+          "voice": "trump_0144_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0145",
+      "context": "Ask Saria for guidance",
+      "pages": [
+        {
+          "lines": [
+            "Saria knows the forest network.",
+            "She hears things before others do.",
+            "Ask what she knows about Hyrule."
+          ],
+          "voice": "trump_0145_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0146",
+      "context": "Find the Fire Spiritual Stone",
+      "pages": [
+        {
+          "lines": [
+            "Impa gave us a solid lead.",
+            "The Fire Stone is on the mountain.",
+            "Search Death Mountain for it."
+          ],
+          "voice": "trump_0146_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0147",
+      "context": "Enter Dodongo's Cavern",
+      "pages": [
+        {
+          "lines": [
+            "The cavern entrance is blocked.",
+            "Fortunately, bombs change a deal.",
+            "Use a Bomb Flower to get in."
+          ],
+          "voice": "trump_0147_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0148",
+      "context": "Death Mountain Great Fairy",
+      "pages": [
+        {
+          "lines": [
+            "Darunia mentioned a Great Fairy.",
+            "Lives at the summit, apparently.",
+            "Climb Death Mountain and visit."
+          ],
+          "voice": "trump_0148_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0149",
+      "context": "Ask Saria about the Water Stone",
+      "pages": [
+        {
+          "lines": [
+            "One Spiritual Stone remains.",
+            "Saria may know who controls it.",
+            "Call her and ask about the stone."
+          ],
+          "voice": "trump_0149_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x014A",
+      "context": "Princess Ruto in Jabu-Jabu",
+      "pages": [
+        {
+          "lines": [
+            "Ruto is inside a giant fish.",
+            "That is the report, unbelievably.",
+            "Enter Jabu-Jabu and find her."
+          ],
+          "voice": "trump_014a_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x014B",
+      "context": "Return with three Stones",
+      "pages": [
+        {
+          "lines": [
+            "We have all three stones now.",
+            "That took work; nobody handed them",
+            "to us. Return to Hyrule Castle."
+          ],
+          "voice": "trump_014b_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x014C",
+      "context": "Object thrown into moat",
+      "pages": [
+        {
+          "lines": [
+            "Zelda threw something in the moat.",
+            "I watched it happen--very clear.",
+            "Search the water and recover it."
+          ],
+          "voice": "trump_014c_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x014D",
+      "context": "Check the Temple of Time",
+      "pages": [
+        {
+          "lines": [
+            "We have the stones and ocarina.",
+            "That combination means something.",
+            "Check inside the Temple of Time."
+          ],
+          "voice": "trump_014d_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x014E",
+      "context": "Follow Sheik's Kakariko lead",
+      "pages": [
+        {
+          "lines": [
+            "Sheik says go to Kakariko.",
+            "Mysterious person, but good record.",
+            "Let's follow the lead for now."
+          ],
+          "voice": "trump_014e_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0150",
+      "context": "Forest and Saria in danger",
+      "pages": [
+        {
+          "lines": [
+            "Something changed in the forest.",
+            "And Saria has gone quiet too.",
+            "Go back and investigate both."
+          ],
+          "voice": "trump_0150_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0151",
+      "context": "Death Mountain cloud",
+      "pages": [
+        {
+          "lines": [
+            "That cloud over Death Mountain--",
+            "it does not look like weather.",
+            "Go up there and investigate."
+          ],
+          "voice": "trump_0151_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0152",
+      "context": "Arctic wind from Zora's River",
+      "pages": [
+        {
+          "lines": [
+            "Cold wind comes from Zora's River.",
+            "This is not normal Hyrule weather.",
+            "Follow it toward the Domain."
+          ],
+          "voice": "trump_0152_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0153",
+      "context": "Iron Boots diving clue",
+      "pages": [
+        {
+          "lines": [
+            "Those Iron Boots weigh a ton.",
+            "Usually a problem; here, an asset.",
+            "Wear them at the bottom of the lake."
+          ],
+          "voice": "trump_0153_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0154",
+      "context": "Find the remaining Sages",
+      "pages": [
+        {
+          "lines": [
+            "We still need the other Sages.",
+            "Somebody in Hyrule knows where.",
+            "Find a person with information."
+          ],
+          "voice": "trump_0154_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0155",
+      "context": "Monster from Kakariko well",
+      "pages": [
+        {
+          "lines": [
+            "That monster came from the well.",
+            "People ignored it until it escaped.",
+            "Go back and inspect the well."
+          ],
+          "voice": "trump_0155_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0156",
+      "context": "Spirit Temple mystery",
+      "pages": [
+        {
+          "lines": [
+            "Who built the Spirit Temple?",
+            "Nobody builds that in the desert",
+            "without a purpose. Investigate."
+          ],
+          "voice": "trump_0156_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0157",
+      "context": "Nocturne of Shadow reminder",
+      "pages": [
+        {
+          "lines": [
+            "Sheik taught us the Nocturne.",
+            "Songs tend to open unusual routes.",
+            "Play the Nocturne of Shadow."
+          ],
+          "voice": "trump_0157_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0158",
+      "context": "Search Ganondorf's desert",
+      "pages": [
+        {
+          "lines": [
+            "Ganondorf came from the desert.",
+            "That makes it worth examining.",
+            "Go there and search for a lead."
+          ],
+          "voice": "trump_0158_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x015A",
+      "context": "Use the Silver Gauntlets",
+      "pages": [
+        {
+          "lines": [
+            "Now we have Silver Gauntlets.",
+            "Things that would not move before",
+            "are negotiable. Equip them."
+          ],
+          "voice": "trump_015a_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x015B",
+      "context": "Return to Temple of Time",
+      "pages": [
+        {
+          "lines": [
+            "Someone waits at the Temple of Time.",
+            "I have a strong idea who it is.",
+            "Go there and meet them."
+          ],
+          "voice": "trump_015b_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x015C",
+      "context": "Rescue Zelda",
+      "pages": [
+        {
+          "lines": [
+            "Zelda is held in Ganon's Castle.",
+            "He made it grand; still a prison.",
+            "Get inside and rescue her."
+          ],
+          "voice": "trump_015c_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x015F",
+      "context": "General progress reminder",
+      "pages": [
+        {
+          "lines": [
+            "We're still moving forward.",
+            "There may be no fresh lead yet.",
+            "Keep going with the current job."
+          ],
+          "voice": "trump_015f_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0600",
+      "context": "Enemy targeting: Unknown target",
+      "pages": [
+        {
+          "lines": [
+            "We don't know this one yet.",
+            "Watch how it moves; choose a weapon."
+          ],
+          "voice": "trump_0600_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0601",
+      "context": "Enemy targeting: Gohma",
+      "pages": [
+        {
+          "lines": [
+            "Gohma has one eye doing everything.",
+            "When it turns red, stun and strike."
+          ],
+          "voice": "trump_0601_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0602",
+      "context": "Enemy targeting: Gohma Egg",
+      "pages": [
+        {
+          "lines": [
+            "That egg becomes a bigger problem.",
+            "Break it now, before it hatches."
+          ],
+          "voice": "trump_0602_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0603",
+      "context": "Enemy targeting: Gohma Larva",
+      "pages": [
+        {
+          "lines": [
+            "The larva commits to every jump.",
+            "Block the leap, then counter."
+          ],
+          "voice": "trump_0603_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0604",
+      "context": "Enemy targeting: Skulltula",
+      "pages": [
+        {
+          "lines": [
+            "Armor in front, soft underneath.",
+            "Wait for it to turn; hit the belly."
+          ],
+          "voice": "trump_0604_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0605",
+      "context": "Enemy targeting: Big Skulltula",
+      "pages": [
+        {
+          "lines": [
+            "The bigger one has the same flaw.",
+            "Wait for the belly, then strike."
+          ],
+          "voice": "trump_0605_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0606",
+      "context": "Enemy targeting: Tailpasaran",
+      "pages": [
+        {
+          "lines": [
+            "The body is one electric trap.",
+            "Avoid it and attack the tail."
+          ],
+          "voice": "trump_0606_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0607",
+      "context": "Enemy targeting: Deku Baba",
+      "pages": [
+        {
+          "lines": [
+            "Deku Baba. All mouth, no results.",
+            "Dodge the lunge, then attack."
+          ],
+          "voice": "trump_0607_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0608",
+      "context": "Enemy targeting: Big Deku Baba",
+      "pages": [
+        {
+          "lines": [
+            "Big Deku Baba. Overgrown menace.",
+            "Avoid the bite. Cut the stem."
+          ],
+          "voice": "trump_0608_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0609",
+      "context": "Enemy targeting: Withered Deku Baba",
+      "pages": [
+        {
+          "lines": [
+            "Withered Baba. Barely functioning.",
+            "Cut it down for a Deku Stick."
+          ],
+          "voice": "trump_0609_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x060A",
+      "context": "Enemy targeting: Deku Scrub",
+      "pages": [
+        {
+          "lines": [
+            "Deku Scrub. Throws nuts and hides.",
+            "Reflect one with your shield."
+          ],
+          "voice": "trump_060a_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x060C",
+      "context": "Enemy targeting: King Dodongo",
+      "pages": [
+        {
+          "lines": [
+            "He opens his mouth before rolling.",
+            "Feed him a bomb, then strike."
+          ],
+          "voice": "trump_060c_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x060D",
+      "context": "Enemy targeting: Dodongo",
+      "pages": [
+        {
+          "lines": [
+            "The armor stops before the tail.",
+            "Hit there, then avoid the blast."
+          ],
+          "voice": "trump_060d_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x060E",
+      "context": "Enemy targeting: Baby Dodongo",
+      "pages": [
+        {
+          "lines": [
+            "Baby Dodongo. Tiny demolition crew.",
+            "Back away when it starts flashing."
+          ],
+          "voice": "trump_060e_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x060F",
+      "context": "Enemy targeting: Lizalfos",
+      "pages": [
+        {
+          "lines": [
+            "Lizalfos. Lots of jumping around.",
+            "Guard, then counter when it lands."
+          ],
+          "voice": "trump_060f_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0610",
+      "context": "Enemy targeting: Dinolfos",
+      "pages": [
+        {
+          "lines": [
+            "Dinolfos. Tougher, still beatable.",
+            "Block the attack, then punish it."
+          ],
+          "voice": "trump_0610_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0611",
+      "context": "Enemy targeting: Fire Keese",
+      "pages": [
+        {
+          "lines": [
+            "A burning Keese wants to get close.",
+            "Shoot it before it reaches you."
+          ],
+          "voice": "trump_0611_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0612",
+      "context": "Enemy targeting: Keese",
+      "pages": [
+        {
+          "lines": [
+            "A Keese circles until it can dive.",
+            "Shoot it, or strike as it comes in."
+          ],
+          "voice": "trump_0612_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0613",
+      "context": "Enemy targeting: Armos",
+      "pages": [
+        {
+          "lines": [
+            "The statue moves once disturbed.",
+            "Hit its back, then clear the blast."
+          ],
+          "voice": "trump_0613_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0614",
+      "context": "Enemy targeting: Barinade",
+      "pages": [
+        {
+          "lines": [
+            "Barinade. An electrical mess.",
+            "Boomerang the links and the core."
+          ],
+          "voice": "trump_0614_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0615",
+      "context": "Enemy targeting: Parasitic Tentacle",
+      "pages": [
+        {
+          "lines": [
+            "Tentacle. Disgusting obstruction.",
+            "Boomerang the narrow section."
+          ],
+          "voice": "trump_0615_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0616",
+      "context": "Enemy targeting: Shabom",
+      "pages": [
+        {
+          "lines": [
+            "Shabom. A bubble playing warrior.",
+            "Pop it with a projectile."
+          ],
+          "voice": "trump_0616_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0617",
+      "context": "Enemy targeting: Biri",
+      "pages": [
+        {
+          "lines": [
+            "Biri carries electricity outside.",
+            "Stun it before you strike."
+          ],
+          "voice": "trump_0617_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0618",
+      "context": "Enemy targeting: Bari",
+      "pages": [
+        {
+          "lines": [
+            "The large jelly splits when hit.",
+            "Stun it, split it, clear the pieces."
+          ],
+          "voice": "trump_0618_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0619",
+      "context": "Enemy targeting: Stinger",
+      "pages": [
+        {
+          "lines": [
+            "Stinger. Hiding under the floor.",
+            "Draw it out, then shoot it."
+          ],
+          "voice": "trump_0619_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x061A",
+      "context": "Enemy targeting: Phantom Ganon, mounted",
+      "pages": [
+        {
+          "lines": [
+            "Most riders in the frames are fake.",
+            "Shoot the real one as he exits."
+          ],
+          "voice": "trump_061a_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x061B",
+      "context": "Enemy targeting: Stalfos",
+      "pages": [
+        {
+          "lines": [
+            "A Stalfos trusts its sword too much.",
+            "Block the swing, then counter."
+          ],
+          "voice": "trump_061b_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x061C",
+      "context": "Enemy targeting: Blue Bubble",
+      "pages": [
+        {
+          "lines": [
+            "Blue Bubble. Inflated reputation.",
+            "Remove the flame, hit the skull."
+          ],
+          "voice": "trump_061c_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x061D",
+      "context": "Enemy targeting: White Bubble",
+      "pages": [
+        {
+          "lines": [
+            "White Bubble. It spins, it stops.",
+            "Wait for the stop, then strike."
+          ],
+          "voice": "trump_061d_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x061E",
+      "context": "Enemy targeting: Green Bubble",
+      "pages": [
+        {
+          "lines": [
+            "Its green flame always drops away.",
+            "Wait it out, then attack the skull."
+          ],
+          "voice": "trump_061e_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x061F",
+      "context": "Enemy targeting: Skullwalltula",
+      "pages": [
+        {
+          "lines": [
+            "It controls the wall above us.",
+            "Shoot it before you climb past."
+          ],
+          "voice": "trump_061f_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0620",
+      "context": "Enemy targeting: Gold Skulltula",
+      "pages": [
+        {
+          "lines": [
+            "This Skulltula leaves proof behind.",
+            "Defeat it and collect the token."
+          ],
+          "voice": "trump_0620_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0621",
+      "context": "Enemy targeting: Volvagia",
+      "pages": [
+        {
+          "lines": [
+            "Volvagia. A tunneling dragon.",
+            "Hammer the head when it emerges."
+          ],
+          "voice": "trump_0621_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0622",
+      "context": "Enemy targeting: Flare Dancer",
+      "pages": [
+        {
+          "lines": [
+            "All that fire protects a small core.",
+            "Hookshot it out, then attack."
+          ],
+          "voice": "trump_0622_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0623",
+      "context": "Enemy targeting: Torch Slug",
+      "pages": [
+        {
+          "lines": [
+            "The slug is dangerous while burning.",
+            "Put out the flame, then strike."
+          ],
+          "voice": "trump_0623_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0624",
+      "context": "Enemy targeting: Red Bubble",
+      "pages": [
+        {
+          "lines": [
+            "Red Bubble. Hot air with a skull.",
+            "Block it, then hit the bare skull."
+          ],
+          "voice": "trump_0624_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0625",
+      "context": "Enemy targeting: Morpha",
+      "pages": [
+        {
+          "lines": [
+            "The water only protects the core.",
+            "Hookshot it out, then strike."
+          ],
+          "voice": "trump_0625_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0626",
+      "context": "Enemy targeting: Dark Link",
+      "pages": [
+        {
+          "lines": [
+            "He copies the attacks he expects.",
+            "Change your timing; surprise him."
+          ],
+          "voice": "trump_0626_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0627",
+      "context": "Enemy targeting: Shell Blade",
+      "pages": [
+        {
+          "lines": [
+            "Shell Blade. Weak in the center.",
+            "Strike only when it opens."
+          ],
+          "voice": "trump_0627_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0628",
+      "context": "Enemy targeting: Spike",
+      "pages": [
+        {
+          "lines": [
+            "Spike. All defense, little talent.",
+            "Attack when the spikes retract."
+          ],
+          "voice": "trump_0628_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0629",
+      "context": "Enemy targeting: Bongo Bongo",
+      "pages": [
+        {
+          "lines": [
+            "Invisible, but the Lens exposes him.",
+            "Shoot both hands, then the eye."
+          ],
+          "voice": "trump_0629_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x062A",
+      "context": "Enemy targeting: Redead",
+      "pages": [
+        {
+          "lines": [
+            "A Redead wins when you face it.",
+            "Avoid the gaze; get behind it."
+          ],
+          "voice": "trump_062a_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x062B",
+      "context": "Enemy targeting: Phantom Ganon",
+      "pages": [
+        {
+          "lines": [
+            "He expects his magic to scare us.",
+            "Reflect the orb, then rush him."
+          ],
+          "voice": "trump_062b_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x062D",
+      "context": "Enemy targeting: Gibdo",
+      "pages": [
+        {
+          "lines": [
+            "Gibdo. Wrapped up, still a mess.",
+            "Avoid the gaze. Attack the back."
+          ],
+          "voice": "trump_062d_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x062E",
+      "context": "Enemy targeting: Dead Hand's hand",
+      "pages": [
+        {
+          "lines": [
+            "The hand is bait, but also a clue.",
+            "Let it draw out the real target."
+          ],
+          "voice": "trump_062e_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x062F",
+      "context": "Enemy targeting: Dead Hand",
+      "pages": [
+        {
+          "lines": [
+            "Dead Hand hides until one grabs you.",
+            "Escape, draw it out, hit the head."
+          ],
+          "voice": "trump_062f_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0630",
+      "context": "Enemy targeting: Wallmaster",
+      "pages": [
+        {
+          "lines": [
+            "The hand announces itself below.",
+            "Watch the shadow; dodge and strike."
+          ],
+          "voice": "trump_0630_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0631",
+      "context": "Enemy targeting: Floormaster",
+      "pages": [
+        {
+          "lines": [
+            "It divides when you think it's done.",
+            "Destroy all three pieces quickly."
+          ],
+          "voice": "trump_0631_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0632",
+      "context": "Enemy targeting: Koume",
+      "pages": [
+        {
+          "lines": [
+            "Koume controls fire, not ice.",
+            "Reflect Kotake's ice into her."
+          ],
+          "voice": "trump_0632_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0633",
+      "context": "Enemy targeting: Kotake",
+      "pages": [
+        {
+          "lines": [
+            "Kotake controls ice, not fire.",
+            "Reflect Koume's fire into her."
+          ],
+          "voice": "trump_0633_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0634",
+      "context": "Enemy targeting: Nabooru Iron Knuckle",
+      "pages": [
+        {
+          "lines": [
+            "Iron Knuckle. Nabooru is inside.",
+            "Dodge the axe and break the armor."
+          ],
+          "voice": "trump_0634_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0635",
+      "context": "Enemy targeting: Iron Knuckle",
+      "pages": [
+        {
+          "lines": [
+            "Heavy armor slows the axe recovery.",
+            "Dodge, then attack the opening."
+          ],
+          "voice": "trump_0635_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0636",
+      "context": "Enemy targeting: Adult Skull Kid",
+      "pages": [
+        {
+          "lines": [
+            "This Skull Kid attacks from range.",
+            "Answer from a safe distance."
+          ],
+          "voice": "trump_0636_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0637",
+      "context": "Enemy targeting: Like Like",
+      "pages": [
+        {
+          "lines": [
+            "Like Like. It steals your equipment.",
+            "Keep away and strike quickly."
+          ],
+          "voice": "trump_0637_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0639",
+      "context": "Enemy targeting: Beamos",
+      "pages": [
+        {
+          "lines": [
+            "Beamos. Surveillance gone wrong.",
+            "Avoid the beam and use a bomb."
+          ],
+          "voice": "trump_0639_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x063A",
+      "context": "Enemy targeting: Anubis",
+      "pages": [
+        {
+          "lines": [
+            "Anubis copies every move you make.",
+            "Lead that copy into a flame."
+          ],
+          "voice": "trump_063a_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x063B",
+      "context": "Enemy targeting: Freezard",
+      "pages": [
+        {
+          "lines": [
+            "Freezard. Cold, slow, unpleasant.",
+            "Avoid the breath. Fire works well."
+          ],
+          "voice": "trump_063b_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x063D",
+      "context": "Enemy targeting: Ganondorf",
+      "pages": [
+        {
+          "lines": [
+            "He throws magic and expects fear.",
+            "Reflect it, use Light, then sword."
+          ],
+          "voice": "trump_063d_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x063E",
+      "context": "Enemy targeting: Ganon",
+      "pages": [
+        {
+          "lines": [
+            "All that size, and the tail is open.",
+            "Use Light, hit tail, then the Sword."
+          ],
+          "voice": "trump_063e_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x063F",
+      "context": "Enemy targeting: Skull Kid",
+      "pages": [
+        {
+          "lines": [
+            "Skull Kid. Wants entertainment.",
+            "Try music before starting trouble."
+          ],
+          "voice": "trump_063f_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0640",
+      "context": "Enemy targeting: Friendly Skull Kid",
+      "pages": [
+        {
+          "lines": [
+            "This Skull Kid could be an ally.",
+            "Play Saria's Song. Make the deal."
+          ],
+          "voice": "trump_0640_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0641",
+      "context": "Enemy targeting: Masked Skull Kid",
+      "pages": [
+        {
+          "lines": [
+            "Skull Kid likes that mask.",
+            "Talk business and make the trade."
+          ],
+          "voice": "trump_0641_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0642",
+      "context": "Enemy targeting: Octorok",
+      "pages": [
+        {
+          "lines": [
+            "Octorok. Throws rocks, then hides.",
+            "Shield the rock right back at it."
+          ],
+          "voice": "trump_0642_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0643",
+      "context": "Enemy targeting: Composer Poe",
+      "pages": [
+        {
+          "lines": [
+            "The composer performs as a Poe.",
+            "Attack it and capture the soul."
+          ],
+          "voice": "trump_0643_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0644",
+      "context": "Enemy targeting: Poe",
+      "pages": [
+        {
+          "lines": [
+            "Poe. Invisible when challenged.",
+            "Wait for it to appear, then strike."
+          ],
+          "voice": "trump_0644_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0645",
+      "context": "Enemy targeting: Red Tektite",
+      "pages": [
+        {
+          "lines": [
+            "Red Tektite. Constant jumping.",
+            "Block the landing, then attack."
+          ],
+          "voice": "trump_0645_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0646",
+      "context": "Enemy targeting: Blue Tektite",
+      "pages": [
+        {
+          "lines": [
+            "It hops on water, but fights ashore.",
+            "Lure it there and counter."
+          ],
+          "voice": "trump_0646_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0647",
+      "context": "Enemy targeting: Leever",
+      "pages": [
+        {
+          "lines": [
+            "It hides until you stop watching.",
+            "Keep moving; strike when it rises."
+          ],
+          "voice": "trump_0647_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0648",
+      "context": "Enemy targeting: Peahat",
+      "pages": [
+        {
+          "lines": [
+            "The blades hide vulnerable roots.",
+            "Wait for it to land; hit the roots."
+          ],
+          "voice": "trump_0648_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0649",
+      "context": "Enemy targeting: Peahat Larva",
+      "pages": [
+        {
+          "lines": [
+            "The larva flies straight at you.",
+            "Block the charge, then strike."
+          ],
+          "voice": "trump_0649_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x064A",
+      "context": "Enemy targeting: Moblin",
+      "pages": [
+        {
+          "lines": [
+            "Moblin. Big guard, narrow vision.",
+            "Dodge the charge. Hit the back."
+          ],
+          "voice": "trump_064a_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x064B",
+      "context": "Enemy targeting: Club Moblin",
+      "pages": [
+        {
+          "lines": [
+            "Club Moblin. Loud club, slow turn.",
+            "Avoid shockwaves. Get behind it."
+          ],
+          "voice": "trump_064b_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x064C",
+      "context": "Enemy targeting: Wolfos",
+      "pages": [
+        {
+          "lines": [
+            "Wolfos leaves its back unprotected.",
+            "Guard, circle, strike from behind."
+          ],
+          "voice": "trump_064c_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x064D",
+      "context": "Enemy targeting: Mad Scrub",
+      "pages": [
+        {
+          "lines": [
+            "Mad Scrub. Angry and inaccurate.",
+            "Reflect its nuts with your shield."
+          ],
+          "voice": "trump_064d_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x064E",
+      "context": "Enemy targeting: Business Scrub",
+      "pages": [
+        {
+          "lines": [
+            "Business Scrub. Tough negotiator.",
+            "Reflect one shot, then make a deal."
+          ],
+          "voice": "trump_064e_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x064F",
+      "context": "Enemy targeting: Dampe's Ghost",
+      "pages": [
+        {
+          "lines": [
+            "Dampe's ghost knows the route.",
+            "Follow closely. Do not fall behind."
+          ],
+          "voice": "trump_064f_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0650",
+      "context": "Enemy targeting: Poe Sister Meg",
+      "pages": [
+        {
+          "lines": [
+            "Meg surrounds herself with copies.",
+            "Find the real one and use the bow."
+          ],
+          "voice": "trump_0650_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0651",
+      "context": "Enemy targeting: Poe Sister Joelle",
+      "pages": [
+        {
+          "lines": [
+            "Joelle guards one of four flames.",
+            "Strike when seen; light the torch."
+          ],
+          "voice": "trump_0651_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0652",
+      "context": "Enemy targeting: Poe Sister Beth",
+      "pages": [
+        {
+          "lines": [
+            "Beth vanishes to avoid the fight.",
+            "Wait until seen; light the torch."
+          ],
+          "voice": "trump_0652_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0653",
+      "context": "Enemy targeting: Poe Sister Amy",
+      "pages": [
+        {
+          "lines": [
+            "Amy. Hiding behind a block puzzle.",
+            "Solve it, then strike when visible."
+          ],
+          "voice": "trump_0653_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0654",
+      "context": "Enemy targeting: Gerudo Thief",
+      "pages": [
+        {
+          "lines": [
+            "Gerudo guard. Tough, not unbeatable.",
+            "Block her strike, then counter."
+          ],
+          "voice": "trump_0654_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0655",
+      "context": "Enemy targeting: Stalchild",
+      "pages": [
+        {
+          "lines": [
+            "Stalchildren rise after dark.",
+            "A few sword strikes put one down."
+          ],
+          "voice": "trump_0655_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0656",
+      "context": "Enemy targeting: Ice Keese",
+      "pages": [
+        {
+          "lines": [
+            "One touch from it can freeze you.",
+            "Shoot it before it reaches you."
+          ],
+          "voice": "trump_0656_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0657",
+      "context": "Enemy targeting: White Wolfos",
+      "pages": [
+        {
+          "lines": [
+            "White Wolfos. Nice fur, same flaw.",
+            "Circle behind and strike the back."
+          ],
+          "voice": "trump_0657_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0658",
+      "context": "Enemy targeting: Guay",
+      "pages": [
+        {
+          "lines": [
+            "The Guay must dive to threaten us.",
+            "Shoot it or strike during the dive."
+          ],
+          "voice": "trump_0658_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x0659",
+      "context": "Enemy targeting: Bigocto",
+      "pages": [
+        {
+          "lines": [
+            "Bigocto. Blocks the whole platform.",
+            "Boomerang it, then hit the rear."
+          ],
+          "voice": "trump_0659_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x065A",
+      "context": "Enemy targeting: Big Poe",
+      "pages": [
+        {
+          "lines": [
+            "Big Poe. A valuable ghost asset.",
+            "Defeat it and bottle the soul fast."
+          ],
+          "voice": "trump_065a_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x065B",
+      "context": "Enemy targeting: Twinrova",
+      "pages": [
+        {
+          "lines": [
+            "The witches alternate fire and ice.",
+            "Absorb three matching attacks."
+          ],
+          "voice": "trump_065b_00.wav"
+        }
+      ]
+    },
+    {
+      "id": "0x065C",
+      "context": "Enemy targeting: Wasteland Poe",
+      "pages": [
+        {
+          "lines": [
+            "Wasteland Poe knows the safe route.",
+            "Follow it closely through the sand."
+          ],
+          "voice": "trump_065c_00.wav"
+        }
+      ]
+    }
+  ],
+  "story_messages": [
+    {
+      "id": "0x00CF",
+      "context": "Unusable item warning",
+      "pages": [
+        [
+          "Good item. Wrong place.",
+          "Try it somewhere useful."
+        ]
+      ]
+    },
+    {
+      "id": "0x00D0",
+      "context": "Locked interaction",
+      "pages": [
+        [
+          "It won't open. Tough negotiator."
+        ]
+      ]
+    },
+    {
+      "id": "0x0228",
+      "context": "Point of interest",
+      "pages": [
+        [
+          "Look at this. Worth a closer look."
+        ]
+      ]
+    },
+    {
+      "id": "0x023B",
+      "context": "Unidentified reaction",
+      "pages": [
+        [
+          "Well. That needs explaining."
+        ]
+      ]
+    },
+    {
+      "id": "0x1000",
+      "context": "Trump introduces himself",
+      "pages": [
+        [
+          "You're awake. Finally.",
+          "I'm Trump, your fairy partner."
+        ],
+        [
+          "The Great Deku Tree sent me.",
+          "He wanted someone with presence.",
+          "Apparently, wings were enough."
+        ]
+      ]
+    },
+    {
+      "id": "0x102B",
+      "context": "Leave for Hyrule Castle",
+      "pages": [
+        [
+          "Hyrule Castle next, {player}.",
+          "Let's meet the management."
+        ]
+      ]
+    },
+    {
+      "id": "0x102C",
+      "context": "Farewell to Deku Tree",
+      "pages": [
+        [
+          "Good-bye, Great Deku Tree.",
+          "We'll finish what you started."
+        ]
+      ]
+    },
+    {
+      "id": "0x107D",
+      "context": "Return to Deku Tree",
+      "pages": [
+        [
+          "Great Deku Tree, I'm back.",
+          "And I brought the boy."
+        ]
+      ]
+    },
+    {
+      "id": "0x1095",
+      "context": "Wake Link greeting",
+      "pages": [
+        [
+          "{player}, wake up.",
+          "The forest has a situation."
+        ],
+        [
+          "The Great Deku Tree needs you.",
+          "Come on. Destiny keeps terrible",
+          "hours."
+        ]
+      ]
+    },
+    {
+      "id": "0x1096",
+      "context": "Wake Link follow-up",
+      "pages": [
+        [
+          "Up. Come on. We have a quest."
+        ],
+        [
+          "Hyrule's future is in this bed.",
+          "I'd feel better if it sat up."
+        ]
+      ]
+    },
+    {
+      "id": "0x1098",
+      "context": "Urgent Deku Tree summons",
+      "pages": [
+        [
+          "The Great Deku Tree called.",
+          "An actual tree. Very important.",
+          "Let's get moving."
+        ]
+      ]
+    },
+    {
+      "id": "0x1099",
+      "context": "Deku Tree calls for Trump",
+      "speaker": "Deku Tree",
+      "pages": [
+        [
+          "Trump...",
+          "Trump, where art thou?",
+          "Come hither..."
+        ]
+      ]
+    },
+    {
+      "id": "0x10B1",
+      "context": "Sleeping person",
+      "pages": [
+        [
+          "No response. He's sleeping.",
+          "A very firm negotiating position."
+        ]
+      ]
+    },
+    {
+      "id": "0x3040",
+      "context": "Heat hazard",
+      "pages": [
+        [
+          "Too hot. We can't stay long.",
+          "Get out before the heat gets us."
+        ]
+      ]
+    },
+    {
+      "id": "0x305F",
+      "context": "Shield stolen",
+      "pages": [
+        [
+          "Your shield is gone!",
+          "That's a serious equipment issue."
+        ]
+      ]
+    },
+    {
+      "id": "0x3060",
+      "context": "Tunic stolen",
+      "pages": [
+        [
+          "Your tunic is gone!",
+          "That was not part of the deal."
+        ]
+      ]
+    },
+    {
+      "id": "0x3061",
+      "context": "Shield and tunic stolen",
+      "pages": [
+        [
+          "Your shield AND tunic are gone!",
+          "We have to recover your gear."
+        ]
+      ]
+    },
+    {
+      "id": "0x3066",
+      "context": "Egg hatches",
+      "pages": [
+        [
+          "The egg hatched! A chicken.",
+          "Our smallest project delivered."
+        ]
+      ]
+    },
+    {
+      "id": "0x401D",
+      "context": "Underwater danger",
+      "pages": [
+        [
+          "You can't breathe down here!",
+          "Take off those boots and get air."
+        ]
+      ]
+    },
+    {
+      "id": "0x5071",
+      "context": "Sinking Shadow Temple boat",
+      "pages": [
+        [
+          "The ship is sinking!",
+          "No more inspections. Jump to",
+          "a safe platform now!"
+        ]
+      ]
+    },
+    {
+      "id": "0x7050",
+      "context": "Adult Link reveal",
+      "pages": [
+        [
+          "{player}, you're taller!",
+          "Finally, some visible progress."
+        ]
+      ]
+    },
+    {
+      "id": "0x7054",
+      "context": "Seven years later",
+      "pages": [
+        [
+          "The Temple of Time again...",
+          "Seven years? That meeting ran",
+          "longer than expected."
+        ],
+        [
+          "Some weapons from your childhood",
+          "won't work for you now.",
+          "Check your equipment."
+        ],
+        [
+          "Let's get outside and see",
+          "what happened to Hyrule."
+        ]
+      ]
+    },
+    {
+      "id": "0x70CD",
+      "context": "Ganondorf repels Trump",
+      "pages": [
+        [
+          "{player}, I can't get close!",
+          "Those waves of darkness keep",
+          "pushing me back."
+        ],
+        [
+          "I'm sorry. You'll have to handle",
+          "this part without my advice."
+        ]
+      ]
+    },
+    {
+      "id": "0x70D4",
+      "context": "After Ganondorf fight",
+      "pages": [
+        [
+          "I'm sorry I couldn't help.",
+          "That barrier was stronger",
+          "than my objections."
+        ]
+      ]
+    },
+    {
+      "id": "0x70D6",
+      "context": "Trump returns for Ganon",
+      "pages": [
+        [
+          "He's not keeping me out again.",
+          "This time we fight together."
+        ]
+      ]
+    },
+    {
+      "id": "0x70E6",
+      "context": "Spot the legendary sword",
+      "pages": [
+        [
+          "{player}, look at that!"
+        ]
+      ]
+    },
+    {
+      "id": "0x70E7",
+      "context": "Recognize legendary blade",
+      "pages": [
+        [
+          "That blade has a reputation."
+        ]
+      ]
+    },
+    {
+      "id": "0x70E8",
+      "context": "Master Sword reveal",
+      "pages": [
+        [
+          "The Master Sword!",
+          "Now that's proper equipment."
+        ]
+      ]
+    },
+    {
+      "id": "0x71B0",
+      "context": "Timed delivery spoiled",
+      "pages": [
+        [
+          "Time's up! The delivery spoiled.",
+          "We'll need a fresh one.",
+          "Next time, fewer detours."
+        ]
+      ]
+    }
+  ],
+  "name_reference_ids": [
+    "0x1000",
+    "0x1015",
+    "0x1017",
+    "0x102A",
+    "0x103F",
+    "0x1099",
+    "0x109A"
+  ],
+  "embedded_voice_triggers": [
+    {
+      "message_id": "0x1095",
+      "stock_cues": [
+        "NA_SE_VO_NA_HELLO_3"
+      ]
+    },
+    {
+      "message_id": "0x1096",
+      "stock_cues": [
+        "NA_SE_VO_NA_HELLO_2"
+      ]
+    },
+    {
+      "message_id": "0x70CD",
+      "stock_cues": [
+        "NA_SE_VO_NA_HELLO_2"
+      ]
+    },
+    {
+      "message_id": "0x70D6",
+      "stock_cues": [
+        "NA_SE_VO_NA_HELLO_2"
+      ]
+    }
+  ],
+  "short_cues": [
+    {
+      "name": "call",
+      "context": "Navi calls for the player's attention; replaces Hey and Listen",
+      "text": "Hey, listen. We have a tremendous quest.",
+      "voice": "trump_cue_call.wav",
+      "replaces": [
+        "NA_SE_VO_NAVY_CALL",
+        "NA_SE_VO_NA_HELLO_2"
+      ]
+    },
+    {
+      "name": "target_npc",
+      "context": "Navi highlights a nearby non-player character",
+      "text": "Look who we have here. Very interesting.",
+      "voice": "trump_cue_target_npc.wav",
+      "replaces": [
+        "NA_SE_VO_NAVY_HELLO"
+      ]
+    },
+    {
+      "name": "target_object",
+      "context": "Navi highlights an object or point of interest",
+      "text": "Hey, listen. We have a tremendous quest.",
+      "voice": "trump_cue_target_object.wav",
+      "replaces": [
+        "NA_SE_VO_NAVY_HEAR"
+      ]
+    },
+    {
+      "name": "target_enemy",
+      "context": "Navi highlights an enemy",
+      "text": "We don't know this one yet. Watch how it moves; choose a weapon.",
+      "voice": "trump_cue_target_enemy.wav",
+      "replaces": [
+        "NA_SE_VO_NAVY_ENEMY"
+      ]
+    },
+    {
+      "name": "talk_open",
+      "context": "The player opens a conversation with Navi",
+      "text": "Look who we have here. Very interesting.",
+      "voice": "trump_cue_talk_open.wav",
+      "replaces": [
+        "NA_SE_VO_SK_LAUGH in En_Elf"
+      ]
+    },
+    {
+      "name": "intro_hello",
+      "context": "Navi greets Link during the opening cutscene",
+      "text": "Look who we have here. Very interesting.",
+      "voice": "trump_cue_intro_hello.wav",
+      "replaces": [
+        "NA_SE_VO_NA_HELLO_3"
+      ]
+    }
+  ],
+  "runtime_fixes": [
+    {
+      "id": "AUDIO-001",
+      "change": "183 dedicated note layers replace out-of-range signed-8-bit jumps and shared mutable note bytes."
+    },
+    {
+      "id": "AUDIO-002",
+      "change": "Soundfonts 38-40 use permanent caching; audio heap grows by 64 KiB; permanent pool includes their generated sizes. WAV samples stay cartridge-backed."
+    },
+    {
+      "id": "IDENTITY-001",
+      "change": "Rename every quoted English Navi mention to Trump; fix companion pronouns in 0x1017 and 0x103F."
+    },
+    {
+      "id": "HUD-001",
+      "change": "Original TRUMP lettering in the 32x8 IA4 English C-Up label; Japanese and other language slots unchanged."
+    },
+    {
+      "id": "MODEL-001",
+      "change": "Yaw the Navi replacement toward the current camera after the original limb callback resets the matrix; keep position, scale, and upright posture."
+    },
+    {
+      "id": "TITLE-001",
+      "change": "Original 96x8 OCARINA OF TRUMP subtitle in both title draw passes."
+    }
+  ],
+  "audio_policy": "177 existing full-page WAVs plus six existing short cues. The 29 additional story/warning rewrites are text; four existing embedded cue triggers are remapped. No new full-page recordings have been made."
+}

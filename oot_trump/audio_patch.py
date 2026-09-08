@@ -146,7 +146,7 @@ def _write_soundfonts(repo: Path, clips: list[Clip]) -> None:
             continue
         lines = [
             f'<Soundfont Name="Soundfont_{font_index}" Index="{font_index}" Medium="MEDIUM_CART" '
-            'CachePolicy="CACHE_LOAD_TEMPORARY" '
+            'CachePolicy="CACHE_LOAD_PERMANENT" '
             'SampleBank="$(BUILD_DIR)/assets/audio/samplebanks/SampleBank_0.xml">',
             "    <Samples>",
         ]
@@ -194,6 +194,38 @@ def _patch_voice_bank_limit(path: Path) -> None:
         + '"Extended Voice Bank SFX Table is limited to 512 entries");'
     )
     _write(path, text.replace(stock, extended, 1))
+
+
+def _patch_audio_heap(repo: Path, clips: list[Clip]) -> None:
+    # Three custom fonts hold ~33 KiB of metadata. The stock temporary font
+    # cache is only 0x2880 bytes with two entries; it cannot hold these fonts.
+    # Reserve 64 KiB beyond retail to cover them and the expanded SFX sequence
+    # without stealing the original session/cache working memory.
+    font_sizes = " + ".join(f"Soundfont_{i}_SIZE" for i in sorted({c.font_index for c in clips}))
+    replacements = {
+        "src/buffers/audio_heap.c": ("gAudioHeap[0x38000]", "gAudioHeap[0x48000]"),
+        "include/buffers.h": ("gAudioHeap[0x38000]", "gAudioHeap[0x48000]"),
+        "src/audio/game/session_init.c": (
+            "#define SFX_SOUNDFONTS_SIZE (Soundfont_0_SIZE + Soundfont_1_SIZE)",
+            "#define SFX_SOUNDFONTS_SIZE (Soundfont_0_SIZE + Soundfont_1_SIZE"
+            + (" + " + font_sizes if font_sizes else "") + ")",
+        ),
+    }
+    updates = []
+    for relative, (old, new) in replacements.items():
+        path = repo / relative
+        text = path.read_text(encoding="utf-8")
+        if relative.endswith("session_init.c"):
+            matches = re.findall(r"#define SFX_SOUNDFONTS_SIZE \([^\n]*\)", text)
+            if len(matches) == 1:
+                old = matches[0]
+        if new not in text:
+            if text.count(old) != 1:
+                raise ProjectError("Audio heap anchor missing: " + relative)
+            text = text.replace(old, new, 1)
+        updates.append((path, text))
+    for path, text in updates:
+        _write(path, text)
 
 
 def _patch_audiobank_spec(path: Path, clips: list[Clip]) -> None:
@@ -281,18 +313,19 @@ def _patch_sequence(path: Path, clips: list[Clip]) -> None:
         text = text[:stock_start] + dispatch + text[stock_end:]
 
     channel_start, channel_end = _markers("SEQUENCE_CHANNELS")
-    lines = [channel_start, "/* One-shot channels; effect numbers are local to each 64-entry font. */"]
+    lines = [channel_start, "/* Dedicated layers avoid short-branch overflow and shared note mutation. */"]
     for clip in clips:
-        lines.extend(
-            [
-                f".channel {clip.channel}",
-                f"    font {2 + FONT_INDICES.index(clip.font_index)}",
-                f"    stseq (ASEQ_OP_LAYER_NOTEDV | SF{clip.font_index}_{clip.effect}), "
-                "LAYER_612D + STSEQ_NOTEDV_OPCODE_PITCH",
-                "    rjump CHAN_6125",
-                "",
-            ]
-        )
+        layer = "OOT_TRUMP_LAYER_" + clip.key
+        lines.extend([
+            f".channel {clip.channel}",
+            f"    font {2 + FONT_INDICES.index(clip.font_index)}",
+            f"    ldlayer 0, {layer}",
+            "    end",
+            f".layer {layer}",
+            f"    notedv SF{clip.font_index}_{clip.effect}, 0, 127",
+            "    end",
+            "",
+        ])
     lines.append(channel_end)
     text = _insert_before(text, "SEQ_0_END:", "\n".join(lines), "SEQUENCE_CHANNELS")
     _write(path, text)
@@ -456,6 +489,7 @@ def install_audio_backend(
 
     _patch_samplebank(samplebank, clips)
     _write_soundfonts(repo, clips)
+    _patch_audio_heap(repo, clips)
     _patch_voice_table(voice_table, clips)
     _patch_voice_bank_limit(sfx_header)
     _patch_audiobank_spec(audiobank_spec, clips)

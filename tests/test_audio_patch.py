@@ -163,10 +163,16 @@ class AudioPatchTests(unittest.TestCase):
                 sequence.read_text().index('#include "Soundfont_1.h"'),
             )
             self.assertIn("    font 2", sequence.read_text())
+            custom = sequence.read_text().split("/* OOT_TRUMP_SEQUENCE_CHANNELS_START */")[1]
+            self.assertNotIn("rjump", custom)
+            self.assertNotIn("stseq", custom)
+            self.assertIn("ldlayer 0, OOT_TRUMP_LAYER_00E0_00", custom)
+            self.assertIn("notedv SF38_TRUMP_00E0_00, 0, 127", custom)
             self.assertEqual(sequence.read_text().count("OOT_TRUMP_VOICE_PAGE_DISPATCH_START"), 1)
             self.assertIn("ldio IO_PORT_SFX_INDEX_HIBITS", sequence.read_text())
             soundfont = root / "assets/audio/soundfonts/Soundfont_38.xml"
             self.assertIn('Effect Name="TRUMP_00E0_00"', soundfont.read_text())
+            self.assertIn('CachePolicy="CACHE_LOAD_PERMANENT"', soundfont.read_text())
 
             message = root / "z_message.c"
             message.write_text(

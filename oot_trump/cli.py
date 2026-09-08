@@ -24,6 +24,8 @@ from .project import (
     run,
     stage_baserom,
 )
+from .title_patch import patch_title_screen
+from .companion_patch import apply_companion
 from .voice import estimate_script, export_voice_script, generate_voice_map
 
 
@@ -157,6 +159,8 @@ def apply(repo: Path, check: bool) -> None:
             f"Missing extracted {path}; run setup with a supported baserom first"
         )
     patch_file(path, load_manifest(), check=check)
+    patch_title_screen(repo, check=check)
+    apply_companion(repo, check=check)
 
 
 def build(repo: Path) -> None:
