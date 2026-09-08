@@ -1,82 +1,77 @@
 # Ocarina of Trump
 
-A fictional parody mod for **The Legend of Zelda: Ocarina of Time** that turns
-Navi into Trump: a tiny suited companion with revised dialogue, synthetic voice
-clips, and an OoT-style fairy model. The humor aims to fit the adventure while
-keeping the clues you need to finish it.
+Navi is Trump now. That's the idea.
 
-**Inspired by GORM THE OLD’s YouTube parody about Trump in Hyrule.** This is an
-independent fan project, not an official adaptation or an endorsement by GORM
-THE OLD, Nintendo, or Donald Trump. The dialogue and synthetic performances are
-fictional parody, not authentic recordings or statements.
+I saw GORM THE OLD's YouTube video about Trump in Hyrule and thought it would
+be a funny, dumb thing to turn into a ROM hack. So here's a tiny Trump in a
+suit, flying around Hyrule and giving you advice.
 
-## What changes
+<img src="docs/images/trump-fairy.png" alt="Blender preview of the Trump fairy, wearing a suit and fairy wings" width="420">
 
-- Trump fairy model with a curved face, matching skin colors, suit, and wings.
-  The model follows Navi’s own heading; the face animates during voice cues.
-- 177 voiced English hint/advice messages, including 89 enemy advice entries.
-- Six short replacement cues, including the familiar “Hey, listen” call.
-- 29 additional story/warning rewrites, including “Trump, Trump, where art thou?”
-  These preserve textbox flow; they do **not** have new full-page voice tracks.
-- English Navi name references and the C-Up label become Trump. Other language
-  slots are preserved.
-- The title-screen subtitle reads **OCARINA OF TRUMP**. The main Zelda logo remains.
+*The current model in Blender. This is a model preview, not an in-game screenshot.*
 
-See the [complete change index](content/companion-change-index.md) for message
-IDs, authored text, cue replacements, and implementation fixes. A
-[JSON index](content/companion-change-index.json) is also available.
+## What's in it
 
-## Build and play
+- A Trump fairy model with a talking face. He follows Navi's direction instead
+  of always staring at the camera.
+- Rewritten English hints and enemy advice, with 177 voice clips and six short
+  calls replacing things like “Hey, listen!”
+- Navi's name changed to Trump in English dialogue and the C-Up label.
+- 29 extra story and warning rewrites. Those aren't fully voiced.
+- “Ocarina of Trump” under the Zelda logo on the title screen.
 
-The documented environment is **WSL Debian with Windows Blender 5.2 and Fast64**.
-You need Python 3.10+, build tools, and your own legally obtained **NTSC 1.0**
-baserom. The repository includes the 183 production WAV files; voice generation
-is not needed to build it. No ROM is included or distributed here.
+The jokes still leave the actual game hints intact. It's meant to be funny
+without making every line the same Trump joke.
 
-1. Follow the [setup guide](docs/BUILDING.md#one-time-setup) to install dependencies
-   and Fast64, then clone the repository inside WSL.
-2. In Debian, from the repository root, select your Blender executable and build:
+## The face needed some work
 
-   ```bash
-   export OOT_TRUMP_BLENDER="/mnt/c/Program Files/Blender Foundation/Blender 5.2/blender.exe"
-   python3 -m oot_trump check-model-tools
-   ./scripts/build-rom.sh "/absolute/path/to/your/ntsc-1.0-baserom.z64"
-   ```
+The old face looked pasted onto his head. We replaced the separate face piece
+with one continuous head, gave the nose a proper shape, and simplified the
+texture so the skin matches better.
 
-3. Open the resulting `.work/oot/build/ntsc-1.0/oot-ntsc-1.0.z64` in your emulator.
-   Start it fresh instead of loading an old save state. See
-   [Windows copying and launch instructions](docs/BUILDING.md#run-on-windows).
+| Earlier Blender model | Current Blender model |
+| --- | --- |
+| <img src="docs/images/head-before.png" alt="Earlier front view with the painted face overlay" width="300"> | <img src="docs/images/head-after.png" alt="Current front view with the face mapped onto the head" width="300"> |
 
-The build validates the input, prepares a pinned ZeldaRET checkout, exports the
-model, applies text/title/audio changes, and compiles the English NTSC ROM. Your
-original baserom is left untouched. Build products stay in ignored `.work/`.
+[More pictures and a few notes](docs/MODEL.md) · [Full list of changes](content/companion-change-index.md)
 
-## Verification status and limits
+## How to play
 
-The latest implementation passes **46 unit tests**, content validation, voice
-normalization checks, and a local NTSC 1.0 ROM build. The patched English message
-table was also checked for remaining Navi names and stock Navi sound IDs.
+You'll need your own **NTSC 1.0 Ocarina of Time ROM**. There isn't a ROM download
+in this repo. The voice files are already included.
 
-**Runtime acceptance is still pending** for the latest audio/facing changes.
-A successful build does not establish that the intro freeze or all playback
-issues are resolved. Please cold-boot the new output and use the
-[runtime checklist](docs/DEVELOPMENT.md#runtime-checklist) when reporting results.
-Real-hardware compatibility has not been verified.
+The build uses **WSL Debian, Python 3.10+, and Blender with Fast64**. Our current
+setup uses Windows Blender 5.2. Start with the
+[setup and build guide](docs/BUILDING.md) if you haven't installed everything.
 
-The rigid model has static wings. Replacing the shared fairy skeleton also
-changes other fairy instances. Additional story rewrites are text plus existing
-short cues where applicable, rather than a fully voiced story.
+Once that's set up, run this from the repo folder in Debian:
 
-## Documentation and credits
+```bash
+export OOT_TRUMP_BLENDER="/mnt/c/Program Files/Blender Foundation/Blender 5.2/blender.exe"
+python3 -m oot_trump check-model-tools
+./scripts/build-rom.sh "/path/to/your/ntsc-1.0-baserom.z64"
+```
 
-- [Setup, build, run, and troubleshooting](docs/BUILDING.md)
-- [Development, asset workflow, and testing](docs/DEVELOPMENT.md)
-- [Complete companion change index](content/companion-change-index.md)
-- [Voice provenance and synthetic-parody disclosure](content/voice-provenance.json)
-- [Repository maintenance instructions](AGENTS.md)
+Adjust the paths for your computer. Open the finished
+`.work/oot/build/ntsc-1.0/oot-ntsc-1.0.z64` in your emulator. Start it fresh;
+don't load a save state from an older build.
 
-Thanks to **GORM THE OLD** for the inspiration, and to the
-[ZeldaRET](https://github.com/zeldaret/oot) and
-[Fast64](https://github.com/Fast-64/fast64) projects for the tools this build uses.
-The game and its original assets belong to their respective owners. Keep ROMs,
-extracted game assets, and generated Blender/build files out of commits and uploads.
+## Still a work in progress
+
+The ROM builds and all 46 tests pass. The latest audio and facing changes still
+need more in-game testing, especially the intro. The wings don't flap, and
+other fairies share the replacement model too. Real hardware hasn't been tested.
+
+If something breaks, include your emulator/version, the build you're playing,
+and where it happened. [Build help](docs/BUILDING.md#troubleshooting) and
+[developer notes](docs/DEVELOPMENT.md) are here if you need them.
+
+## Thanks
+
+GORM THE OLD for the inspiration, [ZeldaRET](https://github.com/zeldaret/oot) for
+the decomp, and [Fast64](https://github.com/Fast-64/fast64) for the model tools.
+
+This is an unofficial fan parody. The voice is synthetic, not a real Trump
+recording. [Voice credits](content/voice-provenance.json) and
+[texture notes](trump_face/README.md) cover the assets. No affiliation or
+endorsement is implied. Please don't upload ROMs or extracted game assets here.

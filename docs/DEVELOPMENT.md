@@ -94,7 +94,7 @@ git diff --check
 ```
 
 After extraction, `python3 -m oot_trump apply --check` checks patch targets without
-writing them. Build changes with the canonical command. Current results: 45
+writing them. Build changes with the canonical command. Current results: 46
 unit tests, strict content/normalization checks, and local compilation pass.
 Latest runtime acceptance remains pending.
 
