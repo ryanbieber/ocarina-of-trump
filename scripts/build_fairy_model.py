@@ -6,7 +6,7 @@ What this script does:
   * Can import gFairySkel automatically when OOT_DECOMP_PATH is configured.
   * Converts the generated Principled materials to Fast64 F3D materials when
     the Fast64 addon is installed.
-  * Saves a .blend file next to this script.
+  * Saves generated .blend files under the ignored .work/ directory.
 
 Important:
   * The generated mesh is rigidly bound to Navi's display limb. En_Elf uses a
@@ -17,7 +17,7 @@ Important:
 
 Run from Blender's Scripting workspace, or from a Blender command line:
 
-  blender --background --python navi_trump_fast64_example.py
+  blender --background --python scripts/build_fairy_model.py
 
 To import Navi from an OoT decompilation before building the model, set:
 
@@ -50,15 +50,18 @@ IMPORT_NAVI_FROM_DECOMP = os.environ.get("NAVI_TRUMP_IMPORT", "0") == "1"
 # Blender and confirming that your decomp path/export settings are correct.
 EXPORT_WITH_FAST64 = os.environ.get("NAVI_TRUMP_EXPORT", "0") == "1"
 
-# A relative path is resolved next to this script when run with --python.
-OUTPUT_BLEND = os.environ.get("NAVI_TRUMP_BLEND_OUTPUT", "navi_trump_fast64_example.blend")
+# Relative output overrides resolve from the project root.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUTPUT_BLEND = os.environ.get(
+    "NAVI_TRUMP_BLEND_OUTPUT", os.path.join(PROJECT_ROOT, ".work", "trump_fairy.blend")
+)
 FACE_TEXTURE_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
+    PROJECT_ROOT,
     "trump_face",
     "trump_face_smug_n64.png",
 )
 FACE_TALKING_TEXTURE_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
+    PROJECT_ROOT,
     "trump_face",
     "trump_face_smug_talking_n64.png",
 )
@@ -1006,7 +1009,7 @@ def output_path():
     if os.path.isabs(OUTPUT_BLEND):
         return OUTPUT_BLEND
     if "__file__" in globals():
-        base = os.path.dirname(os.path.abspath(__file__))
+        base = PROJECT_ROOT
     else:
         base = bpy.path.abspath("//")
     return os.path.abspath(os.path.join(base, OUTPUT_BLEND))
@@ -1060,6 +1063,7 @@ def main():
     bpy.context.view_layer.objects.active = armature
 
     path = output_path()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=path)
     log("Saved blend file: " + path)
     log("Finished. Render the preview or inspect the armature before exporting to OoT.")

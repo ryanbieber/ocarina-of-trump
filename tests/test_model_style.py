@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 
 def load_helper(name, **context):
-    script = Path(__file__).resolve().parents[1] / 'navi_trump_fast64_example.py'
+    script = Path(__file__).resolve().parents[1] / 'scripts/build_fairy_model.py'
     tree = ast.parse(script.read_text())
     function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == name)
     exec(compile(ast.Module(body=[function], type_ignores=[]), str(script), 'exec'), context)

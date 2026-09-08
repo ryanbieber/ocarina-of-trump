@@ -5,6 +5,11 @@ the [canonical build](BUILDING.md) for full model exports and ROM compilation.
 
 ## Source map
 
+The root only holds project configuration and the README. Model code lives in
+`scripts/build_fairy_model.py`, face art in `trump_face/`, and README pictures in
+`docs/images/`. Blender scenes are generated under ignored `.work/`; none are
+needed in a fresh clone. The old Marcus examples and preview scripts were removed.
+
 | Path | Purpose |
 | --- | --- |
 | `content/dialogue.en.json` | Canonical hint/dialogue definitions; the loaded manifest includes enemy advice. |
@@ -15,7 +20,7 @@ the [canonical build](BUILDING.md) for full model exports and ROM compilation.
 | `oot_trump/companion_patch.py` | English identity/story changes, embedded cues, HUD label, and model facing. |
 | `oot_trump/audio_patch.py` | Soundfonts, immutable clip layers, playback hooks, and audio memory reservation. |
 | `oot_trump/title_patch.py` | Original pixel lettering for the title subtitle. |
-| `navi_trump_fast64_example.py` | Canonical model generator. |
+| `scripts/build_fairy_model.py` | Canonical model generator. |
 | `config/project.json` | Pinned decomp revision, accepted ROM hashes, and audio limits. |
 | `.work/oot/` | Ignored, managed ZeldaRET extraction and build state. |
 

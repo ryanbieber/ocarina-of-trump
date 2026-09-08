@@ -12,7 +12,7 @@ assets.
 - `content/dialogue.en.json`: canonical English dialogue and voice filenames.
 - `content/voice/`: the complete, tracked production WAV catalog.
 - `oot_trump/`: validation, ZeldaRET patching, audio installation, and build CLI.
-- `navi_trump_fast64_example.py`: canonical Blender/Fast64 model generator.
+- `scripts/build_fairy_model.py`: canonical Blender/Fast64 model generator.
 - `scripts/build-rom.sh`: canonical one-shot entry point.
 - `.work/oot/`: ignored, pinned ZeldaRET checkout and generated build state.
 

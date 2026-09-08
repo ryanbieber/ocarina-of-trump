@@ -484,7 +484,7 @@ def export_navi_model(repo: Path, blender: str | None = None) -> None:
         # otherwise inconsistent.
         "NAVI_TRUMP_MODEL_SCALE": os.environ.get("NAVI_TRUMP_MODEL_SCALE", "0.42"),
     }
-    script = path_for_blender(ROOT / "navi_trump_fast64_example.py", blender)
+    script = path_for_blender(ROOT / "scripts/build_fairy_model.py", blender)
     # Linux environment variables are not automatically inherited by a Win32
     # process launched through WSL. Inject the settings in Blender's Python so
     # this behaves identically with Linux Blender and Windows blender.exe.

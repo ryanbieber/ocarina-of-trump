@@ -22,7 +22,7 @@ from oot_trump.project import ProjectError
 
 class CliTests(unittest.TestCase):
     def test_trump_fairy_uses_one_rigid_model_bone(self) -> None:
-        script = (Path(__file__).parent.parent / "navi_trump_fast64_example.py").read_text(
+        script = (Path(__file__).parent.parent / "scripts/build_fairy_model.py").read_text(
             encoding="utf-8"
         )
         self.assertIn(
@@ -37,7 +37,7 @@ class CliTests(unittest.TestCase):
         self.assertNotIn("upper.add(", script)
 
     def test_trump_fairy_centers_geometry_and_exports_material_colors(self) -> None:
-        script = (Path(__file__).parent.parent / "navi_trump_fast64_example.py").read_text(
+        script = (Path(__file__).parent.parent / "scripts/build_fairy_model.py").read_text(
             encoding="utf-8"
         )
         self.assertIn("vertical_center = (min(vertical_bounds) + max(vertical_bounds)) * 0.5", script)
