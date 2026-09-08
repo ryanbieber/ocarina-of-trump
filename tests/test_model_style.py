@@ -1,5 +1,7 @@
 """Geometry/color regressions that do not require a Blender installation."""
 import ast
+import math
+from collections import Counter
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -34,3 +36,17 @@ class ModelStyleTests(unittest.TestCase):
                     a, b, c = [vertices[index] for index in face]
                     normal_y = (b[2]-a[2])*(c[0]-a[0]) - (b[0]-a[0])*(c[2]-a[2])
                     self.assertLess(normal_y, 0, (name, side, face))
+
+    def test_head_is_closed_with_shared_skin_boundary_and_outward_normals(self):
+        vertices, faces, uvs, materials = load_helper('head_geometry', math=math)()
+        edges = Counter(tuple(sorted((face[i], face[(i+1) % len(face)])))
+                        for face in faces for i in range(len(face)))
+        self.assertTrue(all(count == 2 for count in edges.values()))
+        self.assertEqual(len(vertices) - len(edges) + len(faces), 2)
+        self.assertTrue(all(0 <= u <= 1 and 0 <= v <= 1 for u, v in uvs))
+        self.assertEqual(set(materials), {0, 1})
+        for face in faces:
+            a,b,c = [vertices[i] for i in face[:3]]
+            ab,ac = [b[i]-a[i] for i in range(3)], [c[i]-a[i] for i in range(3)]
+            normal=(ab[1]*ac[2]-ab[2]*ac[1],ab[2]*ac[0]-ab[0]*ac[2],ab[0]*ac[1]-ab[1]*ac[0])
+            self.assertGreater(sum(normal[i]*(a[i]-(2.67 if i==2 else 0)) for i in range(3)),0)

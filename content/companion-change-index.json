@@ -2825,7 +2825,7 @@
     },
     {
       "id": "MODEL-001",
-      "change": "Yaw the Navi replacement toward the current camera after the original limb callback resets the matrix; keep position, scale, and upright posture."
+      "change": "Follow Navi actor shape yaw after the limb matrix reset; migrate away from camera tracking. Replace the separate face shell with one welded UV-mapped head, shaped nose/jaw, and simplified matching 32x32 calm/talking textures."
     },
     {
       "id": "TITLE-001",

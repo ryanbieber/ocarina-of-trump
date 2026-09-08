@@ -61,7 +61,7 @@ changes after any playback change; static validation cannot prove runtime safety
 
 ## Model and title
 
-The current model uses 1,358 vertices and 11 materials at default scale `0.42`.
+The current model uses 1,349 vertices and 11 materials at default scale `0.42`.
 Exports require 952–1,800 vertices and at most 16 materials. To adjust scale:
 
 ```bash
@@ -74,8 +74,8 @@ the pristine skeleton before import. Generated Blender files stay out of Git.
 
 The calm and talking face textures are each 32×32 RGBA16 at runtime (2 KiB).
 Preserve alpha cutout rendering and segmented-address conversion before loading
-texture segment 9. The body skin color is sampled from the face and converted
-from sRGB to linear for material assignment. Camera-facing yaw applies to Navi;
+texture segment 9. The body skin color is sampled from the texture boundary and converted
+from sRGB to linear for material assignment. Actor-facing yaw applies to Navi;
 the shared model also affects other fairy instances. Wings remain static.
 
 The title patch supplies original 96×8 I8 lettering in the subtitle's shadow and
@@ -105,7 +105,7 @@ the source commit and emulator/version with results:
 
 - English title/file select and a fresh game's intro through Mido, Saria, and
   Link's house; no freeze, old Navi name, or stock “Hello”/call cue.
-- Model color, centering, camera-facing orientation, and calm/talking transitions.
+- Model color, centering, natural actor-facing orientation, and calm/talking transitions.
 - C-Up label, ordinary hints, early and late enemy targeting/advice.
 - Story message page breaks, player-name insertion, choices, and progression.
 - Adult hints and Gerudo Fortress advice.

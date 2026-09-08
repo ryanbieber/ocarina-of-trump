@@ -12,7 +12,7 @@ English companion dialogue, story mentions, HUD, all actor and message vocal tri
 | AUDIO-002 | Soundfonts 38-40 use permanent caching; audio heap grows by 64 KiB; permanent pool includes their generated sizes. WAV samples stay cartridge-backed. |
 | IDENTITY-001 | Rename every quoted English Navi mention to Trump; fix companion pronouns in 0x1017 and 0x103F. |
 | HUD-001 | Original TRUMP lettering in the 32x8 IA4 English C-Up label; Japanese and other language slots unchanged. |
-| MODEL-001 | Yaw the Navi replacement toward the current camera after the original limb callback resets the matrix; keep position, scale, and upright posture. |
+| MODEL-001 | Follow Navi actor shape yaw after the limb matrix reset; migrate away from camera tracking. Replace the separate face shell with one welded UV-mapped head, shaped nose/jaw, and simplified matching 32x32 calm/talking textures. |
 | TITLE-001 | Original 96x8 OCARINA OF TRUMP subtitle in both title draw passes. |
 
 ## Story and warning text

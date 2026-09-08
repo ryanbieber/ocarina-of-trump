@@ -119,14 +119,24 @@ def patch_runtime(repo):
     actor = repo / 'src/overlays/actors/ovl_En_Elf/z_en_elf.c'
     text = actor.read_text()
     anchor = '        Matrix_Scale(scale, scale, scale, MTXMODE_APPLY);'
-    if '/* OOT_TRUMP_CAMERA_FACING */' not in text:
-        if text.count(anchor) != 1:
-            raise ProjectError('Fairy facing anchor missing')
-        text = text.replace(anchor, '''        /* OOT_TRUMP_CAMERA_FACING */
+    # Migrate existing builds as well as pristine checkouts. The stock limb
+    # callback resets the matrix, so explicitly restore the actor's own yaw.
+    old = """        /* OOT_TRUMP_CAMERA_FACING */
         if (this->actor.params == FAIRY_NAVI) {
             Matrix_RotateY(BINANG_TO_RAD(Math_Vec3f_Yaw(&mtxMult, &play->view.eye)), MTXMODE_APPLY);
         }
-''' + anchor)
+"""
+    text = text.replace(old, '')
+    if 'OOT_TRUMP_CAMERA_FACING' in text:
+        raise ProjectError('Unrecognized old camera-facing patch')
+    if '/* OOT_TRUMP_ACTOR_FACING */' not in text:
+        if text.count(anchor) != 1:
+            raise ProjectError('Fairy facing anchor missing')
+        text = text.replace(anchor, """        /* OOT_TRUMP_ACTOR_FACING */
+        if (this->actor.params == FAIRY_NAVI) {
+            Matrix_RotateY(BINANG_TO_RAD(this->actor.shape.rot.y), MTXMODE_APPLY);
+        }
+""" + anchor)
     actor.write_text(text)
 
 

@@ -44,12 +44,17 @@ class CompanionPatchTests(unittest.TestCase):
             hud.parent.mkdir(parents=True)
             actor.parent.mkdir(parents=True)
             hud.write_text('    static void* cUpLabelTextures[] = LANGUAGE_ARRAY(gNaviCUpJPNTex, gNaviCUpENGTex, gNaviCUpENGTex, gNaviCUpENGTex);')
-            actor.write_text('        Matrix_Scale(scale, scale, scale, MTXMODE_APPLY);')
+            actor.write_text("""        /* OOT_TRUMP_CAMERA_FACING */
+        if (this->actor.params == FAIRY_NAVI) {
+            Matrix_RotateY(BINANG_TO_RAD(Math_Vec3f_Yaw(&mtxMult, &play->view.eye)), MTXMODE_APPLY);
+        }
+        Matrix_Scale(scale, scale, scale, MTXMODE_APPLY);""")
             patch_runtime(root)
             expected=(hud.read_text(),actor.read_text())
             patch_runtime(root)
             self.assertEqual((hud.read_text(),actor.read_text()),expected)
-            self.assertIn('Math_Vec3f_Yaw(&mtxMult, &play->view.eye)',actor.read_text())
+            self.assertNotIn('play->view.eye',actor.read_text())
+            self.assertIn('BINANG_TO_RAD(this->actor.shape.rot.y)',actor.read_text())
             self.assertIn('FAIRY_NAVI',actor.read_text())
 
     def test_permanent_fonts_reserve_extra_heap_and_support_subsets(self):

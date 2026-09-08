@@ -319,13 +319,13 @@ def add_flat_mesh(name, vertices, faces, material):
 
 
 def sample_face_skin(image_path):
-    """Match solid skin to opaque cheek texels, in Blender's linear space."""
+    """Match solid skin to opaque border texels, in Blender's linear space."""
     image = bpy.data.images.load(image_path, check_existing=True)
     width, height = image.size
     pixels = list(image.pixels)
     samples = []
-    # Symmetric cheek patches avoid eyes, lips, hair, and transparent borders.
-    for x_fraction in (0.23, 0.27, 0.73, 0.77):
+    # Sample the UV boundary that meets solid skin, avoiding painted highlights.
+    for x_fraction in (0.01, 0.99):
         for y_fraction in (0.40, 0.45, 0.50, 0.55):
             offset = 4 * (int(y_fraction * height) * width + int(x_fraction * width))
             if pixels[offset + 3] > 0.95:
@@ -335,7 +335,7 @@ def sample_face_skin(image_path):
     # Image pixels are encoded sRGB; BSDF and Fast64 color properties are linear.
     rgb = tuple(sorted(sample[c] for sample in samples)[len(samples) // 2] for c in range(3))
     linear = tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb)
-    log("Matched skin to face cheek sRGB: " + repr(tuple(round(c, 3) for c in rgb)))
+    log("Matched skin to face border sRGB: " + repr(tuple(round(c, 3) for c in rgb)))
     return linear
 
 
@@ -386,67 +386,58 @@ def add_lapel(name, side, material):
     return add_flat_mesh(name, vertices, faces, material)
 
 
-def add_face_plate(name, material):
-    """Wrap the expression over the head instead of floating a card ahead of it.
+def head_geometry(segments=24, rings=16):
+    """One welded head surface: front UVs, solid rear, and a real nose profile."""
+    vertices, uvs = [(0.0, 0.0, 1.95)], [(0.5, 0.0)]
+    for ring in range(1, rings):
+        latitude = -math.pi / 2 + math.pi * ring / rings
+        v = math.sin(latitude)
+        radius = math.cos(latitude)
+        # Narrow the lower jaw without pinching the brow or temples.
+        jaw = 1.0 - 0.14 * max(0.0, -v)
+        for index in range(segments):
+            angle = math.tau * index / segments
+            x = 0.67 * radius * math.sin(angle) * jaw
+            y = -0.53 * radius * math.cos(angle)
+            if math.cos(angle) > 0:
+                nose = 0.16 * math.exp(-((x / 0.15) ** 2 + ((v + 0.06) / 0.24) ** 2))
+                y -= nose * math.cos(angle)
+            vertices.append((x, y, 2.67 + 0.72 * v))
+            uvs.append((0.5 + 0.5 * math.sin(angle), 0.5 + 0.5 * v))
+    top = len(vertices)
+    vertices.append((0.0, 0.0, 3.39))
+    uvs.append((0.5, 1.0))
+    faces, materials = [], []
+    for index in range(segments):
+        nxt = (index + 1) % segments
+        # Material boundary is exactly at the temples, shared by both halves.
+        material = 0 if math.cos(math.tau * (index + 0.5) / segments) > 0 else 1
+        faces.append((0, 1 + nxt, 1 + index))
+        materials.append(material)
+        for ring in range(rings - 2):
+            a, b = 1 + ring * segments, 1 + (ring + 1) * segments
+            faces.append((a + index, a + nxt, b + nxt, b + index))
+            materials.append(material)
+        last = 1 + (rings - 2) * segments
+        faces.append((last + index, last + nxt, top))
+        materials.append(material)
+    return vertices, faces, uvs, materials
 
-    Sample the front envelope of the same ellipsoid used for the skull.
-    Multiple radial rings bring the silhouette back to the temples;
-    the old single fan put every edge at y=-0.59, ahead of the entire skull.
-    Both expressions share these UVs and the existing segment-9 material.
-    """
-    segment_count = 24
-    ring_count = 7
-    head_forms = (
-        ((0.0, 0.0, 2.67), (0.67, 0.53, 0.72)),
-    )
 
-    def surface_point(u, v):
-        x, z = 0.67 * u, 2.67 + 0.72 * v
-        front = 0.0
-        for (cx, cy, cz), (rx, ry, rz) in head_forms:
-            remaining = 1.0 - ((x - cx) / rx) ** 2 - ((z - cz) / rz) ** 2
-            if remaining >= -1e-8:
-                front = min(front, cy - ry * math.sqrt(max(0.0, remaining)))
-        # A restrained nose bridge gives the painted features an actual profile.
-        nose = 0.085 * math.exp(-((u / 0.22) ** 2 + ((v + 0.02) / 0.30) ** 2))
-        return (x, front - 0.025 - nose, z)
-
-    vertices = [surface_point(0.0, 0.0)]
-    uvs = [(0.5, 0.5)]
-    for ring in range(1, ring_count + 1):
-        # Equal angular steps keep the curved rim from cutting into the skull.
-        radius = math.sin(0.5 * math.pi * ring / ring_count)
-        for index in range(segment_count):
-            angle = math.tau * index / segment_count
-            u, v = radius * math.cos(angle), radius * math.sin(angle)
-            vertices.append(surface_point(u, v))
-            uvs.append((0.5 + 0.5 * u, 0.5 + 0.5 * v))
-
-    faces = [
-        (0, index + 1, ((index + 1) % segment_count) + 1)
-        for index in range(segment_count)
-    ]
-    for ring in range(1, ring_count):
-        inner = 1 + (ring - 1) * segment_count
-        outer = inner + segment_count
-        for index in range(segment_count):
-            following = (index + 1) % segment_count
-            faces.extend((
-                (inner + index, outer + index, outer + following),
-                (inner + index, outer + following, inner + following),
-            ))
+def add_textured_head(name, face, skin):
+    vertices, faces, uvs, materials = head_geometry()
     mesh = bpy.data.meshes.new(name + "Mesh")
     mesh.from_pydata(vertices, [], faces)
     mesh.update()
     uv_layer = mesh.uv_layers.new(name="UVMap")
-    for polygon in mesh.polygons:
+    for polygon, material in zip(mesh.polygons, materials):
+        polygon.material_index = material
         for loop_index in polygon.loop_indices:
-            vertex_index = mesh.loops[loop_index].vertex_index
-            uv_layer.data[loop_index].uv = uvs[vertex_index]
-
+            uv_layer.data[loop_index].uv = uvs[mesh.loops[loop_index].vertex_index]
     obj = bpy.data.objects.new(name, mesh)
     bpy.context.collection.objects.link(obj)
-    attach_material(obj, material)
+    attach_material(obj, face)
+    attach_material(obj, skin)
     apply_surface_shading(obj, smooth=True)
     return obj
 
@@ -818,13 +809,10 @@ def build_character():
         ), suit))
         parts.append(add_uv_sphere("TrumpFairy_Shoe_" + suffix, (side * 0.22, -0.075, 0.27), (0.17, 0.29, 0.12), shoe, 10, 6, False))
 
-    # A continuous cranium supports the wrapped expression without separate
-    # cheek/chin balls poking through its transparent edge.
+    # One welded surface carries the expression and the solid rear scalp.
     parts.append(add_uv_sphere("TrumpFairy_Neck", (0.0, 0.0, 2.12), (0.19, 0.19, 0.24), skin, 8, 5, True))
-    # Match Link's near-model facial density rather than spending the budget on
-    # blocky body primitives. Adult Link's near head alone uses 212 vertices;
-    # this cranium uses 202, with additional curved face and ear geometry.
-    parts.append(add_uv_sphere("TrumpFairy_Head", (0.0, 0.0, 2.67), (0.67, 0.53, 0.72), skin, 20, 11, True))
+    # The UV and solid regions share geometry and smooth normals at the temples.
+    parts.append(add_textured_head("TrumpFairy_Head", face, skin))
     parts.append(add_uv_sphere("TrumpFairy_Ear_L", (-0.65, 0.0, 2.66), (0.11, 0.13, 0.18), skin, 10, 6, True))
     parts.append(add_uv_sphere("TrumpFairy_Ear_R", (0.65, 0.0, 2.66), (0.11, 0.13, 0.18), skin, 10, 6, True))
 
@@ -837,10 +825,7 @@ def build_character():
     parts.append(add_uv_sphere("TrumpFairy_Sideburn_L", (-0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 10, 6, True))
     parts.append(add_uv_sphere("TrumpFairy_Sideburn_R", (0.57, -0.14, 2.88), (0.09, 0.09, 0.20), hair_shadow, 10, 6, True))
 
-    # The approved painted face stays legible at Navi's tiny on-screen size.
-    # The expression follows the skull and cheeks all the way to the temples,
-    # so side views retain a continuous head silhouette.
-    parts.append(add_face_plate("TrumpFairy_FacePlate", face))
+    # Export the matching talking image for the existing segment-9 animation.
     parts.append(
         add_hidden_texture_carrier("TrumpFairy_FaceTalkingCarrier", talking_face)
     )

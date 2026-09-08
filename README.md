@@ -13,7 +13,7 @@ fictional parody, not authentic recordings or statements.
 ## What changes
 
 - Trump fairy model with a curved face, matching skin colors, suit, and wings.
-  The face turns toward the camera horizontally and animates during voice cues.
+  The model follows Navi’s own heading; the face animates during voice cues.
 - 177 voiced English hint/advice messages, including 89 enemy advice entries.
 - Six short replacement cues, including the familiar “Hey, listen” call.
 - 29 additional story/warning rewrites, including “Trump, Trump, where art thou?”
@@ -53,7 +53,7 @@ original baserom is left untouched. Build products stay in ignored `.work/`.
 
 ## Verification status and limits
 
-The latest implementation passes **45 unit tests**, content validation, voice
+The latest implementation passes **46 unit tests**, content validation, voice
 normalization checks, and a local NTSC 1.0 ROM build. The patched English message
 table was also checked for remaining Navi names and stock Navi sound IDs.
 
