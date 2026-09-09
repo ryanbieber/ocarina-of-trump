@@ -6,9 +6,9 @@ I saw GORM THE OLD's YouTube video about Trump in Hyrule and thought it would
 be a funny, dumb thing to turn into a ROM hack. So here's a tiny Trump in a
 suit, flying around Hyrule and giving you advice.
 
-<img src="docs/images/trump-fairy.png" alt="Blender preview of the Trump fairy, wearing a suit and fairy wings" width="420">
+<img src="docs/images/trump-fairy-turntable.gif" alt="A rotating Blender render of the Trump fairy, wearing a suit and fairy wings" width="420">
 
-*The current model in Blender. This is a model preview, not an in-game screenshot.*
+*A turntable rendered from the current Blender model. This isn't an in-game screenshot.*
 
 ## What's in it
 
