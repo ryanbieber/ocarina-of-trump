@@ -7,6 +7,11 @@ and thought it would be a funny, dumb thing to turn into a mod pack. It turns
 Navi into a tiny Trump in a suit who flies around Hyrule, gives you advice, and
 speaks with Trump-style synthetic voiceovers.
 
+**Required game version:** The Legend of Zelda: Ocarina of Time, North American
+NTSC-U 1.0 in big-endian `.z64` format. A clean matching ROM has MD5
+`5bd1fe107bf8106b2ab6650abecd54d6`. Later revisions, PAL releases, and GameCube
+versions are not supported.
+
 <img src="docs/images/trump-fairy-turntable.gif" alt="A rotating Blender render of the Trump fairy, wearing a suit and fairy wings" width="420">
 
 *A turntable rendered from the current Blender model. This isn't an in-game screenshot.*
@@ -49,7 +54,7 @@ texture so the skin matches better.
 
 ## How to play
 
-You'll need your own **NTSC 1.0 Ocarina of Time ROM**. There isn't a ROM download
+You'll need your own **North American NTSC-U 1.0 Ocarina of Time ROM**. There isn't a ROM download
 in this repo. The voice files are already included.
 
 The build uses **WSL Debian, Python 3.10+, and Blender with Fast64**. Our current
