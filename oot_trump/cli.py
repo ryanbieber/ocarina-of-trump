@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from .audio_patch import install_audio_backend
+from .bps import BpsPatchInfo, create_optimized_bps_patch
 from .manifest import load_manifest, load_voice_cues, validate_manifest, validate_voice_cues
 from .message_patch import MessagePatchError, patch_file
 from .project import (
@@ -18,6 +19,7 @@ from .project import (
     ROOT,
     assert_oot_checkout,
     find_baserom,
+    git_revision,
     md5,
     patch_armips_pthread,
     patch_default_english_language,
@@ -30,6 +32,9 @@ from .voice import estimate_script, export_voice_script, generate_voice_map
 
 
 DEFAULT_OOT_DIR = ROOT / ".work" / "oot"
+DEFAULT_FLIPS_DIR = ROOT / ".work" / "flips"
+FLIPS_REPOSITORY = "https://github.com/Sir-Walrus/Flips.git"
+FLIPS_REVISION = "359d414cff73b3e0400871d3c288a59b36564834"
 BLENDER_ENV = "OOT_TRUMP_BLENDER"
 
 
@@ -187,7 +192,7 @@ def build(repo: Path) -> None:
     )
     print(f"installed {count} voice clips into ZeldaRET")
     run(
-        ["make", f"VERSION={config.version}", "REGION=US", "COMPARE=0"],
+        ["make", "compress", f"VERSION={config.version}", "REGION=US", "COMPARE=0"],
         cwd=repo,
         clean_toolchain=True,
     )
@@ -502,8 +507,72 @@ def export_navi_model(repo: Path, blender: str | None = None) -> None:
     validate_exported_navi_model(repo)
 
 
-def build_rom(repo: Path, baserom: Path | None, skip_model: bool) -> None:
-    """Run the complete reproducible build from a baserom to a patched ROM."""
+def bootstrap_flips(directory: Path = DEFAULT_FLIPS_DIR) -> Path:
+    """Return a pinned optimized BPS creator, building it on first use."""
+    executable = directory / "flips"
+    if executable.is_file() and (directory / ".git").is_dir():
+        try:
+            if git_revision(directory) == FLIPS_REVISION:
+                return executable
+        except (OSError, subprocess.CalledProcessError):
+            pass
+
+    if not directory.exists():
+        directory.parent.mkdir(parents=True, exist_ok=True)
+        run(["git", "clone", FLIPS_REPOSITORY, str(directory)])
+    elif not (directory / ".git").is_dir():
+        raise ProjectError(f"Floating IPS path is not a Git checkout: {directory}")
+    run(["git", "fetch", "origin", FLIPS_REVISION], cwd=directory)
+    run(["git", "checkout", "--detach", FLIPS_REVISION], cwd=directory)
+    run(["make", "TARGET=cli", "CFLAGS=-O3"], cwd=directory)
+    if not executable.is_file():
+        raise ProjectError(f"Floating IPS build did not create {executable}")
+    return executable
+
+
+def generate_build_patch(
+    repo: Path,
+    source: Path,
+    output: Path | None = None,
+) -> BpsPatchInfo:
+    """Create and verify the distributable BPS patch for a completed build."""
+    config = ProjectConfig.load()
+    source = source.resolve()
+    checksum = md5(source)
+    if checksum not in config.baserom_md5:
+        raise ProjectError(f"Unsupported {config.version} baserom checksum: {checksum}")
+    target = (
+        repo
+        / "build"
+        / config.version
+        / f"oot-{config.version}-compressed.z64"
+    )
+    if not target.is_file():
+        raise ProjectError(f"Compressed built ROM not found: {target}")
+    if output is None:
+        output = (
+            ROOT
+            / "dist"
+            / f"ocarina-of-trump-{config.version}-{checksum[:8]}.bps"
+        )
+    flips = bootstrap_flips()
+    info = create_optimized_bps_patch(flips, source, target, output)
+    print(
+        f"wrote verified BPS patch to {info.path} "
+        f"({info.patch_size / (1024 * 1024):.1f} MiB)"
+    )
+    print(f"patch source MD5: {info.source_md5}")
+    print(f"patched ROM SHA-256: {info.target_sha256}")
+    return info
+
+
+def build_rom(
+    repo: Path,
+    baserom: Path | None,
+    skip_model: bool,
+    patch_output: Path | None = None,
+) -> None:
+    """Run the complete reproducible build and create a verified BPS patch."""
     errors = validate(allow_missing_audio=False)
     if errors:
         raise ProjectError("content validation failed:\n- " + "\n- ".join(errors))
@@ -526,10 +595,10 @@ def build_rom(repo: Path, baserom: Path | None, skip_model: bool) -> None:
 
     bootstrap(repo, config, setup=False)
     if baserom is not None:
-        destination = stage_baserom(baserom, repo, config)
-        print(f"staged baserom at {destination}")
+        source = stage_baserom(baserom, repo, config)
+        print(f"staged baserom at {source}")
     else:
-        find_baserom(repo, config)
+        source = find_baserom(repo, config)
 
     if not (repo / config.message_data).is_file():
         run(
@@ -545,6 +614,7 @@ def build_rom(repo: Path, baserom: Path | None, skip_model: bool) -> None:
     else:
         export_navi_model(repo, blender)
     build(repo)
+    generate_build_patch(repo, source, patch_output)
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -562,6 +632,9 @@ def make_parser() -> argparse.ArgumentParser:
         "build", help="build once the expanded full-voice backend is installed"
     )
     build_parser.add_argument("--oot-dir", type=Path, default=DEFAULT_OOT_DIR)
+    build_parser.add_argument(
+        "--patch-output", type=Path, help="override the generated .bps path"
+    )
     one_shot_parser = sub.add_parser(
         "build-rom", help="one-shot setup, patch, model export, and ROM build"
     )
@@ -570,7 +643,20 @@ def make_parser() -> argparse.ArgumentParser:
     )
     one_shot_parser.add_argument("--oot-dir", type=Path, default=DEFAULT_OOT_DIR)
     one_shot_parser.add_argument(
+        "--patch-output", type=Path, help="override the generated .bps path"
+    )
+    one_shot_parser.add_argument(
         "--skip-model", action="store_true", help="build with the existing vanilla fairy model"
+    )
+    patch_parser = sub.add_parser(
+        "create-patch", help="create a verified BPS patch from an existing build"
+    )
+    patch_parser.add_argument(
+        "--baserom", type=Path, required=True, help="exact supported source ROM"
+    )
+    patch_parser.add_argument("--oot-dir", type=Path, default=DEFAULT_OOT_DIR)
+    patch_parser.add_argument(
+        "--output", type=Path, help="override the generated .bps path"
     )
     sub.add_parser(
         "check-model-tools", help="validate Blender and the Fast64 OoT import/export operators"
@@ -608,12 +694,25 @@ def main(argv: list[str] | None = None) -> int:
             apply(args.oot_dir.resolve(), args.check)
             print("dialogue patch check passed" if args.check else "dialogue patch applied")
         elif args.command == "build":
-            build(args.oot_dir.resolve())
+            repo = args.oot_dir.resolve()
+            build(repo)
+            generate_build_patch(
+                repo,
+                find_baserom(repo, ProjectConfig.load()),
+                args.patch_output.resolve() if args.patch_output is not None else None,
+            )
         elif args.command == "build-rom":
             build_rom(
                 args.oot_dir.resolve(),
                 args.baserom.resolve() if args.baserom is not None else None,
                 args.skip_model,
+                args.patch_output.resolve() if args.patch_output is not None else None,
+            )
+        elif args.command == "create-patch":
+            generate_build_patch(
+                args.oot_dir.resolve(),
+                args.baserom.resolve(),
+                args.output.resolve() if args.output is not None else None,
             )
         elif args.command == "check-model-tools":
             validate_model_tools()

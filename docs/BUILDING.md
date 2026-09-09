@@ -73,14 +73,23 @@ The one-shot command prepares ZeldaRET revision
 pristine skeleton before Fast64 export, installs the mod, and compiles with
 `VERSION=ntsc-1.0 REGION=US COMPARE=0`. It can be rerun using the same command.
 
-Successful output:
+Successful outputs:
 
 ```text
-.work/oot/build/ntsc-1.0/oot-ntsc-1.0.z64
+.work/oot/build/ntsc-1.0/oot-ntsc-1.0-compressed.z64
+dist/ocarina-of-trump-ntsc-1.0-BASEHASH.bps
 ```
 
-Do not publish or commit this file. The repository distributes mod sources and
-the documented voice catalog, not a playable ROM or extracted Nintendo assets.
+The workflow builds ZeldaRET's normal Yaz0-compressed image with every model,
+message, and voice asset intact. It then builds a delta BPS with a pinned
+Floating IPS revision and independently applies it in memory to prove that it
+reproduces the compressed ROM byte for byte. Floating IPS is cloned and compiled
+under ignored `.work/` storage on first use.
+
+`BASEHASH` is the first eight characters of the clean input's MD5. A BPS patch
+only accepts the exact source used to create it, so builds from the two accepted
+base dumps get distinct filenames. Do not publish or commit either `.z64` file.
+The `.bps` is the distributable mod artifact. See [Applying the BPS patch](PATCHING.md).
 
 ## Run on Windows
 
@@ -88,7 +97,8 @@ Copy only the **built mod output** to Downloads. In Debian, replace
 `YOUR_WINDOWS_USER` below with your Windows account folder name:
 
 ```bash
-cp .work/oot/build/ntsc-1.0/oot-ntsc-1.0.z64 "/mnt/c/Users/YOUR_WINDOWS_USER/Downloads/ocarina-of-trump.z64"
+cp .work/oot/build/ntsc-1.0/oot-ntsc-1.0-compressed.z64 "/mnt/c/Users/YOUR_WINDOWS_USER/Downloads/ocarina-of-trump.z64"
+cp dist/ocarina-of-trump-ntsc-1.0-*.bps "/mnt/c/Users/YOUR_WINDOWS_USER/Downloads/"
 ```
 
 This replaces a previous output with that filename. Choose a new filename if
@@ -115,6 +125,13 @@ After an initial complete build, text/audio-only iterations can use:
 
 ```bash
 python3 -m oot_trump build
+```
+
+Both build commands regenerate the compressed ROM and verified BPS. To recreate
+only the BPS from an existing build:
+
+```bash
+python3 -m oot_trump create-patch --baserom "/absolute/path/to/your/ntsc-1.0-baserom.z64"
 ```
 
 Model generator or texture changes require the full one-shot build to export

@@ -53,6 +53,7 @@ in this repo. The voice files are already included.
 The build uses **WSL Debian, Python 3.10+, and Blender with Fast64**. Our current
 setup uses Windows Blender 5.2. Start with the
 [setup and build guide](docs/BUILDING.md) if you haven't installed everything.
+The build also creates a BPS patch that can be shared without sharing a ROM.
 
 Once that's set up, run this from the repo folder in Debian:
 
@@ -62,13 +63,19 @@ python3 -m oot_trump check-model-tools
 ./scripts/build-rom.sh "/path/to/your/ntsc-1.0-baserom.z64"
 ```
 
-Adjust the paths for your computer. Open the finished
-`.work/oot/build/ntsc-1.0/oot-ntsc-1.0.z64` in your emulator. Start it fresh;
-don't load a save state from an older build.
+Adjust the paths for your computer. The command creates the complete compressed
+ROM under `.work/oot/build/ntsc-1.0/` and a verified patch such as
+`dist/ocarina-of-trump-ntsc-1.0-5bd1fe10.bps`. The hash in the filename identifies
+the exact clean ROM it accepts.
+
+To use a BPS release, apply it to your own matching NTSC 1.0 ROM with
+[Floating IPS](https://github.com/Sir-Walrus/Flips) or another BPS patcher, then
+open the new `.z64` in your emulator. See the [patching guide](docs/PATCHING.md)
+for the short version. Start fresh; don't load a save state from an older build.
 
 ## Still a work in progress
 
-The ROM builds and all 46 tests pass. The latest audio and facing changes still
+The ROM builds and all 53 tests pass. The latest audio and facing changes still
 need more in-game testing, especially the intro. The wings don't flap, and
 other fairies share the replacement model too. Real hardware hasn't been tested.
 

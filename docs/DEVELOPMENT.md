@@ -20,6 +20,7 @@ needed in a fresh clone. The old Marcus examples and preview scripts were remove
 | `oot_trump/companion_patch.py` | English identity/story changes, embedded cues, HUD label, and model facing. |
 | `oot_trump/audio_patch.py` | Soundfonts, immutable clip layers, playback hooks, and audio memory reservation. |
 | `oot_trump/title_patch.py` | Original pixel lettering for the title subtitle. |
+| `oot_trump/bps.py` | BPS validation and optimized patch creation support. |
 | `scripts/build_fairy_model.py` | Canonical model generator. |
 | `config/project.json` | Pinned decomp revision, accepted ROM hashes, and audio limits. |
 | `.work/oot/` | Ignored, managed ZeldaRET extraction and build state. |
@@ -99,8 +100,8 @@ git diff --check
 ```
 
 After extraction, `python3 -m oot_trump apply --check` checks patch targets without
-writing them. Build changes with the canonical command. Current results: 46
-unit tests, strict content/normalization checks, and local compilation pass.
+writing them. Build changes with the canonical command. Current results: 53
+unit tests, strict content/normalization checks, local compilation, and a verified BPS round trip pass.
 Latest runtime acceptance remains pending.
 
 ## Runtime checklist

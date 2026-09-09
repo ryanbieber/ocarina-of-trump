@@ -270,7 +270,7 @@ class CliTests(unittest.TestCase):
                 build(repo)
 
         run.assert_called_once_with(
-            ["make", "VERSION=ntsc-1.0", "REGION=US", "COMPARE=0"],
+            ["make", "compress", "VERSION=ntsc-1.0", "REGION=US", "COMPARE=0"],
             cwd=repo,
             clean_toolchain=True,
         )
@@ -296,7 +296,7 @@ class CliTests(unittest.TestCase):
             )
             self.assertEqual(
                 run.call_args_list[1].args[0],
-                ["make", "VERSION=ntsc-1.0", "REGION=US", "COMPARE=0"],
+                ["make", "compress", "VERSION=ntsc-1.0", "REGION=US", "COMPARE=0"],
             )
             self.assertEqual(
                 (repo / "build/ntsc-1.0/.oot-trump-region").read_text(encoding="utf-8"),
