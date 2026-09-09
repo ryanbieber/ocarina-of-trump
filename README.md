@@ -25,13 +25,14 @@ without making every line the same Trump joke.
 
 ## Hear a few clips
 
-These are the actual WAV files used by the game. Click a title to play it in
-your browser:
+[▶ Play or download the voice sample reel](https://github.com/ryanbieber/ocarina-of-trump/releases/download/v0.1/ocarina-of-trump-voice-samples.mp4)
 
-- [▶ Hey, listen](content/voice/trump_cue_call.wav?raw=1) — “Hey, listen. We have a tremendous quest.”
-- [▶ The door](content/voice/trump_0201_00.wav?raw=1) — “A door ought to do one thing.”
-- [▶ Deku Baba](content/voice/trump_0607_00.wav?raw=1) — “All mouth, no results.”
-- [▶ The Shadow Temple boat](content/voice/trump_0183_00.wav?raw=1) — “Would I certify it? I would not.”
+The reel contains four clips from the game:
+
+- “Hey, listen. We have a tremendous quest.”
+- “A door ought to do one thing.”
+- “All mouth, no results.”
+- “Would I certify it? I would not.”
 
 ## The face needed some work
 
