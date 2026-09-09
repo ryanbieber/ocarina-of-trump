@@ -2,9 +2,10 @@
 
 Navi is Trump now. That's the idea.
 
-I saw GORM THE OLD's YouTube video about Trump in Hyrule and thought it would
-be a funny, dumb thing to turn into a ROM hack. So here's a tiny Trump in a
-suit, flying around Hyrule and giving you advice.
+I saw [GORM THE OLD's video about Trump in Hyrule](https://www.youtube.com/watch?v=UkEZqnLr5Nc)
+and thought it would be a funny, dumb thing to turn into a mod pack. It turns
+Navi into a tiny Trump in a suit who flies around Hyrule, gives you advice, and
+speaks with Trump-style synthetic voiceovers.
 
 <img src="docs/images/trump-fairy-turntable.gif" alt="A rotating Blender render of the Trump fairy, wearing a suit and fairy wings" width="420">
 
@@ -86,7 +87,8 @@ and where it happened. [Build help](docs/BUILDING.md#troubleshooting) and
 
 ## Thanks
 
-GORM THE OLD for the inspiration, [ZeldaRET](https://github.com/zeldaret/oot) for
+[GORM THE OLD](https://www.youtube.com/watch?v=UkEZqnLr5Nc) for the inspiration,
+[ZeldaRET](https://github.com/zeldaret/oot) for
 the decomp, and [Fast64](https://github.com/Fast-64/fast64) for the model tools.
 
 This is an unofficial fan parody. The voice is synthetic, not a real Trump
